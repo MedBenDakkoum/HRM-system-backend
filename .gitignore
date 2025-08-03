@@ -1,0 +1,8 @@
+node_modules/
+.env
+logs/
+documents/*.aux
+documents/*.log
+documents/*.out
+documents/*.tex
+documents/
