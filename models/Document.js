@@ -9,25 +9,21 @@ const documentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["attestation", "payslip", "contract"],
       required: true,
     },
-    filePath: {
+    fileUrl: {
       type: String,
       required: true,
+    },
+    legalInfo: {
+      type: String,
     },
     generatedDate: {
       type: Date,
       default: Date.now,
     },
-    legalInfo: {
-      type: String,
-      trim: true,
-    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Document", documentSchema);

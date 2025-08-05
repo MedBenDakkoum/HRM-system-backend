@@ -1,11 +1,17 @@
 const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
-const util = require("util");
-const mongoose = require("mongoose"); // Add mongoose import
-const execPromise = util.promisify(exec);
+const mongoose = require("mongoose");
+const axios = require("axios");
+const cloudinary = require("cloudinary").v2;
 const Employee = require("../models/Employee");
 const Document = require("../models/Document");
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const generateAttestation = async (req, res) => {
   try {
@@ -47,7 +53,7 @@ const generateAttestation = async (req, res) => {
       .replace(
         "LEGAL_INFO",
         (
-          legalInfo || "FLESK Consulting, 123 Business St, City, Country"
+          legalInfo || "FLESK Consulting, 123 Business St, Monastir, Moknine"
         ).replace(/[&%$#_{}]/g, "\\$&")
       );
 
@@ -89,37 +95,48 @@ const generateAttestation = async (req, res) => {
     // Write LaTeX file
     fs.writeFileSync(texFile, texContent);
 
-    // Compile LaTeX to PDF using Docker
-    const dockerCommand = `docker run --rm -v "${documentsDir}:/data" blang/latex:ubuntu pdflatex -output-directory=/data /data/${docName}.tex`;
-    try {
-      const { stdout, stderr } = await execPromise(dockerCommand);
-      console.log("Docker stdout:", stdout);
-      if (stderr && !stderr.includes("Output written")) {
-        throw new Error(`LaTeX compilation error: ${stderr}`);
-      }
-    } catch (error) {
-      console.error("Docker execution error:", error);
-      throw new Error(`Failed to compile LaTeX: ${error.message}`);
+    // Send LaTeX file to PDF service
+    const pdfServiceUrl = "http://flesk-pdf-generator.internal:8080";
+    const texContentBase64 = fs.readFileSync(texFile, { encoding: "base64" });
+    const response = await axios.post(pdfServiceUrl, {
+      texContent: texContentBase64,
+      docName: docName,
+      outputDir: "/data",
+    });
+
+    if (response.status !== 200) {
+      throw new Error("PDF generation failed");
     }
+
+    // Save PDF from response
+    const pdfData = Buffer.from(response.data.pdfContent, "base64");
+    fs.writeFileSync(pdfFile, pdfData);
 
     // Verify PDF exists
     if (!fs.existsSync(pdfFile)) {
       throw new Error("PDF file was not generated");
     }
 
-    // Clean up temporary LaTeX files
-    ["aux", "log", "out"].forEach((ext) => {
+    // Upload PDF to Cloudinary
+    const cloudinaryResult = await cloudinary.uploader.upload(pdfFile, {
+      resource_type: "raw",
+      public_id: `flesk/documents/${docName}`,
+      format: "pdf",
+    });
+
+    // Clean up temporary files
+    ["aux", "log", "out", "tex"].forEach((ext) => {
       const tempFile = path.join(documentsDir, `${docName}.${ext}`);
       if (fs.existsSync(tempFile)) {
         fs.unlinkSync(tempFile);
       }
     });
 
-    // Save document metadata
+    // Save document metadata with Cloudinary URL
     const document = new Document({
       employee: employeeId,
       type: "attestation",
-      filePath: pdfFile,
+      fileUrl: cloudinaryResult.secure_url,
       legalInfo,
     });
     await document.save();
@@ -136,7 +153,6 @@ const generateAttestation = async (req, res) => {
 const getDocuments = async (req, res) => {
   try {
     const employeeId = req.params.employeeId;
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ message: "Invalid employee ID format" });
     }

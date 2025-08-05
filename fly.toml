@@ -1,0 +1,22 @@
+app = "hrm-system-backend"
+primary_region = "ams"
+
+[build]
+  builder = "paketo-buildpacks/builder:base"
+  buildpacks = ["gcr.io/paketo-buildpacks/nodejs"]
+
+[http_service]
+  internal_port = 10000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[env]
+  PORT = "10000"
+  MONGO_URI = "mongodb+srv://user-admin:FleskAdmin2@flesk-cluster.mongodb.net/flesk_db?retryWrites=true&w=majority"
+
+[deploy]
+  max_unavailable = 0
+  max_per_region = 1

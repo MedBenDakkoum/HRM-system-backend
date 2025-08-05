@@ -1,0 +1,8 @@
+FROM blang/latex:ubuntu
+WORKDIR /app
+RUN apt-get update && apt-get install -y nodejs npm
+COPY pdf-service-package.json package.json
+RUN npm install
+COPY pdf-service.js .
+EXPOSE 8080
+CMD ["npm", "start"]
