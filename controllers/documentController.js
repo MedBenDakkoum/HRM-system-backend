@@ -96,7 +96,8 @@ const generateAttestation = async (req, res) => {
     fs.writeFileSync(texFile, texContent);
 
     // Send LaTeX file to PDF service
-    const pdfServiceUrl = "http://flesk-pdf-generator.internal:8080";
+    const pdfServiceUrl =
+      process.env.PDF_SERVICE_URL || "http://flesk-pdf-generator.internal:8080";
     const texContentBase64 = fs.readFileSync(texFile, { encoding: "base64" });
     const response = await axios.post(pdfServiceUrl, {
       texContent: texContentBase64,
