@@ -102,13 +102,15 @@ const generateAttestation = async (req, res) => {
       </html>
     `;
 
-    // Launch Puppeteer
+    // Launch Puppeteer with system Chromium
     const browser = await puppeteer.launch({
       headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
       ],
       executablePath:
         process.env.NODE_ENV === "production"
@@ -117,7 +119,7 @@ const generateAttestation = async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent);
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
     await page.pdf({
       path: pdfFile,
       format: "A4",
