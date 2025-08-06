@@ -23,6 +23,6 @@
     "cloudinary": "^2.5.0",
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.17.1",
-    "puppeteer": "^24.15.0"
+    "puppeteer-core": "^23.5.0"
   }
 }

@@ -11,17 +11,23 @@ const recordAttendance = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Validate location (example: check if coordinates are within allowed area)
-    // For simplicity, assume coordinates are [longitude, latitude]
-    const allowedLocation = { lng: 0, lat: 0 }; // Replace with actual office coordinates
-    // Add logic to compare location.coordinates with allowedLocation
+    // Validate location (example: within 100m of office)
+    const allowedLocation = { lng: 10.12345, lat: 35.6789 }; // Replace with actual office coordinates
+    const distance =
+      Math.sqrt(
+        Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
+          Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
+      ) * 111000; // Approx meters (simplified)
+    if (distance > 100) {
+      return res.status(400).json({ message: "Location outside allowed area" });
+    }
 
     const attendance = new Attendance({
       employee: employeeId,
       entryTime,
       location: {
         type: "Point",
-        coordinates: location.coordinates, // [longitude, latitude]
+        coordinates: location.coordinates,
       },
       method,
     });

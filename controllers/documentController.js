@@ -40,11 +40,11 @@ const generateAttestation = async (req, res) => {
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-          .container { max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #000; }
+          body { font-family: 'Times New Roman', serif; margin: 40px; line-height: 1.6; color: #333; }
+          .container { max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #000; background: #f9f9f9; }
           .header { text-align: center; margin-bottom: 40px; }
-          .header h1 { font-size: 24px; font-weight: bold; }
-          .content { font-size: 16px; }
+          .header h1 { font-size: 28px; font-weight: bold; color: #000; }
+          .content { font-size: 16px; text-align: justify; }
           .signature { margin-top: 60px; text-align: right; }
           .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 20px; }
         </style>
@@ -94,7 +94,7 @@ const generateAttestation = async (req, res) => {
             }</p>
           </div>
           <div class="signature">
-            <p>Signature: ____________________</p>
+            <p>Authorized Signature</p>
             <div class="signature-line"></div>
           </div>
         </div>
@@ -104,9 +104,18 @@ const generateAttestation = async (req, res) => {
 
     // Launch Puppeteer
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+      executablePath:
+        process.env.NODE_ENV === "production"
+          ? "/usr/bin/chromium-browser"
+          : undefined,
     });
+
     const page = await browser.newPage();
     await page.setContent(htmlContent);
     await page.pdf({
