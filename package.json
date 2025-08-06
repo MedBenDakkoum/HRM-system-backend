@@ -22,6 +22,7 @@
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.5.0",
     "jsonwebtoken": "^9.0.2",
-    "pdfkit": "^0.17.1"
+    "pdfkit": "^0.17.1",
+    "puppeteer": "^24.15.0"
   }
 }

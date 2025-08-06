@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
-const axios = require("axios");
+const puppeteer = require("puppeteer");
 const cloudinary = require("cloudinary").v2;
 const Employee = require("../models/Employee");
 const Document = require("../models/Document");
@@ -29,89 +29,93 @@ const generateAttestation = async (req, res) => {
     const documentsDir = path
       .resolve(__dirname, "../documents")
       .replace(/\\/g, "/");
-    const texFile = path.join(documentsDir, `${docName}.tex`);
     const pdfFile = path.join(documentsDir, `${docName}.pdf`);
 
     // Ensure documents directory exists
     fs.mkdirSync(documentsDir, { recursive: true });
 
-    // Read LaTeX template
-    const template = fs.readFileSync(
-      path.join(__dirname, "../templates/attestation.tex"),
-      "utf8"
-    );
-
-    // Replace placeholders
-    let texContent = template
-      .replace("EMPLOYEE_NAME", employee.name.replace(/[&%$#_{}]/g, "\\$&"))
-      .replace(
-        "POSITION",
-        employee.role === "stagiaire"
-          ? "Stagiaire"
-          : employee.position || "Employee"
-      )
-      .replace(
-        "LEGAL_INFO",
-        (
-          legalInfo || "FLESK Consulting, 123 Business St, Monastir, Moknine"
-        ).replace(/[&%$#_{}]/g, "\\$&")
-      );
-
-    if (employee.role === "stagiaire" && employee.internshipDetails) {
-      texContent = texContent
-        .replace(
-          "START_DATE",
-          employee.internshipDetails.startDate
-            ? new Date(
+    // Create HTML template for professional PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+          .container { max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #000; }
+          .header { text-align: center; margin-bottom: 40px; }
+          .header h1 { font-size: 24px; font-weight: bold; }
+          .content { font-size: 16px; }
+          .signature { margin-top: 60px; text-align: right; }
+          .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Attestation of Work/Internship</h1>
+            <p>FLESK Consulting</p>
+          </div>
+          <div class="content">
+            <p>This is to certify that <strong>${
+              employee.name
+            }</strong> has been employed as a <strong>${
+      employee.role === "stagiaire"
+        ? "Stagiaire"
+        : employee.position || "Employee"
+    }</strong> at FLESK Consulting.</p>
+            ${
+              employee.role === "stagiaire" && employee.internshipDetails
+                ? `
+              <p><strong>Internship Period:</strong> ${
                 employee.internshipDetails.startDate
-              ).toLocaleDateString()
-            : "N/A"
-        )
-        .replace(
-          "END_DATE",
-          employee.internshipDetails.endDate
-            ? new Date(employee.internshipDetails.endDate).toLocaleDateString()
-            : "N/A"
-        )
-        .replace(
-          "SUPERVISOR",
-          (employee.internshipDetails.supervisor || "N/A").replace(
-            /[&%$#_{}]/g,
-            "\\$&"
-          )
-        )
-        .replace(
-          "OBJECTIVES",
-          (employee.internshipDetails.objectives || "N/A").replace(
-            /[&%$#_{}]/g,
-            "\\$&"
-          )
-        )
-        .replace("ROLE", "stagiaire");
-    } else {
-      texContent = texContent.replace("ROLE", "employee");
-    }
+                  ? new Date(
+                      employee.internshipDetails.startDate
+                    ).toLocaleDateString()
+                  : "N/A"
+              } to ${
+                    employee.internshipDetails.endDate
+                      ? new Date(
+                          employee.internshipDetails.endDate
+                        ).toLocaleDateString()
+                      : "N/A"
+                  }</p>
+              <p><strong>Supervisor:</strong> ${
+                employee.internshipDetails.supervisor || "N/A"
+              }</p>
+              <p><strong>Objectives:</strong> ${
+                employee.internshipDetails.objectives || "N/A"
+              }</p>
+            `
+                : ""
+            }
+            <p><strong>Legal Information:</strong> ${
+              legalInfo ||
+              "FLESK Consulting, 123 Business St, Monastir, Moknine"
+            }</p>
+          </div>
+          <div class="signature">
+            <p>Signature: ____________________</p>
+            <div class="signature-line"></div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
 
-    // Write LaTeX file
-    fs.writeFileSync(texFile, texContent);
-
-    // Send LaTeX file to PDF service
-    const pdfServiceUrl =
-      process.env.PDF_SERVICE_URL || "http://flesk-pdf-generator.internal:8080";
-    const texContentBase64 = fs.readFileSync(texFile, { encoding: "base64" });
-    const response = await axios.post(pdfServiceUrl, {
-      texContent: texContentBase64,
-      docName: docName,
-      outputDir: "/data",
+    // Launch Puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
-
-    if (response.status !== 200) {
-      throw new Error("PDF generation failed");
-    }
-
-    // Save PDF from response
-    const pdfData = Buffer.from(response.data.pdfContent, "base64");
-    fs.writeFileSync(pdfFile, pdfData);
+    const page = await browser.newPage();
+    await page.setContent(htmlContent);
+    await page.pdf({
+      path: pdfFile,
+      format: "A4",
+      margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
+      printBackground: true,
+    });
+    await browser.close();
 
     // Verify PDF exists
     if (!fs.existsSync(pdfFile)) {
@@ -125,13 +129,10 @@ const generateAttestation = async (req, res) => {
       format: "pdf",
     });
 
-    // Clean up temporary files
-    ["aux", "log", "out", "tex"].forEach((ext) => {
-      const tempFile = path.join(documentsDir, `${docName}.${ext}`);
-      if (fs.existsSync(tempFile)) {
-        fs.unlinkSync(tempFile);
-      }
-    });
+    // Clean up temporary PDF file
+    if (fs.existsSync(pdfFile)) {
+      fs.unlinkSync(pdfFile);
+    }
 
     // Save document metadata with Cloudinary URL
     const document = new Document({
