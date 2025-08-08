@@ -6,3 +6,4 @@ documents/*.log
 documents/*.out
 documents/*.tex
 documents/
+render.yaml
