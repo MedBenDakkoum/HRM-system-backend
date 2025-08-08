@@ -11,9 +11,6 @@
   "author": "Mohamed Ben Dakkoum",
   "license": "ISC",
   "devDependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.0",
-    "mongoose": "^8.17.1",
     "nodemon": "^3.1.10"
   },
   "dependencies": {
