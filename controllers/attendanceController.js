@@ -5,19 +5,17 @@ const recordAttendance = async (req, res) => {
   try {
     const { employeeId, entryTime, location, method } = req.body;
 
-    // Verify employee exists
     const employee = await Employee.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Validate location (example: within 100m of office)
-    const allowedLocation = { lng: 10.12345, lat: 35.6789 }; // Replace with actual office coordinates
+    const allowedLocation = { lng: 10.12345, lat: 35.6789 };
     const distance =
       Math.sqrt(
         Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
           Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
-      ) * 111000; // Approx meters (simplified)
+      ) * 111000;
     if (distance > 100) {
       return res.status(400).json({ message: "Location outside allowed area" });
     }

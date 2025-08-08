@@ -21,9 +21,9 @@ router.get("/download/:docId", async (req, res) => {
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
-    res.redirect(document.fileUrl); // Redirect to Cloudinary URL
+    res.redirect(document.fileUrl);
   } catch (error) {
-    console.error("Download document error:", error);
+    console.error("Download document error:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
