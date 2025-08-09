@@ -35,6 +35,24 @@ const generateAttestation = async (req, res) => {
     const stream = fs.createWriteStream(pdfFile);
 
     doc.pipe(stream);
+
+    // Add local logo
+    const logoPath = path.join(__dirname, "../public/flesk-logo.png");
+    try {
+      // console.log("Attempting to add logo from:", logoPath);
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 50, { width: 100 });
+        // console.log("Local logo added successfully");
+        doc.moveDown(2);
+      } else {
+        throw new Error("Local logo file not found");
+      }
+    } catch (imageError) {
+      console.error("Error adding logo to PDF:", imageError.message);
+      doc.fontSize(12).text("Logo not available", 50, 50, { align: "left" });
+      doc.moveDown(2);
+    }
+
     doc
       .font("Times-Roman")
       .fontSize(20)
