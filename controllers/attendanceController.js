@@ -79,7 +79,12 @@ const scanQrCode = async (req, res) => {
     }
 
     const employee = await Employee.findById(parsedData.employeeId);
-    if (!employee || employee.qrCode !== qrData) {
+    if (!employee) {
+      return res.status(401).json({ message: "Invalid or expired QR code" });
+    }
+
+    // Validate timestamp (within 5 minutes to prevent reuse)
+    if (Date.now() - parsedData.timestamp > 5 * 60 * 1000) {
       return res.status(401).json({ message: "Invalid or expired QR code" });
     }
 
