@@ -38,6 +38,14 @@ const employeeSchema = new mongoose.Schema(
       supervisor: { type: String },
       objectives: { type: String },
     },
+    faceTemplate: {
+      type: String,
+      trim: true,
+    },
+    qrCode: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true }
 );

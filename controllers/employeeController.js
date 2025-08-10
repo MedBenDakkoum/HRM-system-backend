@@ -1,5 +1,6 @@
 const Employee = require("../models/Employee");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const registerEmployee = async (req, res) => {
   try {
@@ -31,9 +32,69 @@ const registerEmployee = async (req, res) => {
   }
 };
 
+const loginEmployee = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const employee = await Employee.findOne({ email });
+    if (!employee) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, employee.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: employee._id, role: employee.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+    res.status(200).json({ message: "Login successful", token });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const updateFaceTemplate = async (req, res) => {
+  try {
+    const { faceTemplate } = req.body;
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    employee.faceTemplate = faceTemplate || employee.faceTemplate;
+    await employee.save();
+    res
+      .status(200)
+      .json({ message: "Face template updated successfully", employee });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const updateQrCode = async (req, res) => {
+  try {
+    const { qrCode } = req.body;
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    employee.qrCode = qrCode || employee.qrCode;
+    await employee.save();
+    res.status(200).json({ message: "QR code updated successfully", employee });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().select("-password");
+    const employees = await Employee.find().select(
+      "-password -faceTemplate -qrCode"
+    );
     res.status(200).json(employees);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -42,7 +103,9 @@ const getEmployees = async (req, res) => {
 
 const getEmployeeById = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id).select("-password");
+    const employee = await Employee.findById(req.params.id).select(
+      "-password -faceTemplate -qrCode"
+    );
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -90,6 +153,9 @@ const deleteEmployee = async (req, res) => {
 
 module.exports = {
   registerEmployee,
+  loginEmployee,
+  updateFaceTemplate,
+  updateQrCode,
   getEmployees,
   getEmployeeById,
   updateEmployee,
