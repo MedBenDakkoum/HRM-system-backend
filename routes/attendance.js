@@ -6,6 +6,9 @@ const {
   generateQrCode,
   scanQrCode,
   facialAttendance,
+  recordExit,
+  getPresenceReport,
+  getAllPresenceReports,
 } = require("../controllers/attendanceController");
 const authMiddleware = require("../middleware/auth");
 
@@ -22,5 +25,12 @@ router.post(
   authMiddleware(["employee", "stagiaire", "admin"]),
   facialAttendance
 );
+router.post(
+  "/exit",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  recordExit
+);
+router.get("/report/:employeeId", authMiddleware(["admin"]), getPresenceReport);
+router.get("/reports", authMiddleware(["admin"]), getAllPresenceReports);
 
 module.exports = router;

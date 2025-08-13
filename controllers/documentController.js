@@ -10,7 +10,6 @@ const generateAttestation = async (req, res) => {
   try {
     const { employeeId, legalInfo } = req.body;
 
-    // Validate employee
     const employee = await Employee.findById(employeeId).select(
       "name role position internshipDetails"
     );
@@ -24,10 +23,8 @@ const generateAttestation = async (req, res) => {
       .replace(/\\/g, "/");
     const pdfFile = path.join(documentsDir, `${docName}.pdf`);
 
-    // Ensure documents directory exists
     fs.mkdirSync(documentsDir, { recursive: true });
 
-    // Create PDF with PDFKit
     const doc = new PDFDocument({
       size: "A4",
       margins: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -36,13 +33,10 @@ const generateAttestation = async (req, res) => {
 
     doc.pipe(stream);
 
-    // Add local logo
     const logoPath = path.join(__dirname, "../public/flesk-logo.png");
     try {
-      // console.log("Attempting to add logo from:", logoPath);
       if (fs.existsSync(logoPath)) {
         doc.image(logoPath, 50, 50, { width: 100 });
-        // console.log("Local logo added successfully");
         doc.moveDown(2);
       } else {
         throw new Error("Local logo file not found");
@@ -104,18 +98,15 @@ const generateAttestation = async (req, res) => {
 
     doc.end();
 
-    // Wait for stream to finish
     await new Promise((resolve, reject) => {
       stream.on("finish", resolve);
       stream.on("error", reject);
     });
 
-    // Verify PDF exists
     if (!fs.existsSync(pdfFile)) {
       throw new Error("PDF file was not generated");
     }
 
-    // Upload PDF to Cloudinary
     try {
       const cloudinaryResult = await cloudinary.uploader.upload(pdfFile, {
         resource_type: "raw",
@@ -123,12 +114,10 @@ const generateAttestation = async (req, res) => {
         format: "pdf",
       });
 
-      // Clean up temporary PDF file
       if (fs.existsSync(pdfFile)) {
         fs.unlinkSync(pdfFile);
       }
 
-      // Save document metadata with Cloudinary URL
       const document = new Document({
         employee: employeeId,
         type: "attestation",
@@ -189,4 +178,121 @@ const getAllAttestations = async (req, res) => {
   }
 };
 
-module.exports = { generateAttestation, getDocuments, getAllAttestations };
+const generatePaySlip = async (req, res) => {
+  try {
+    const { employeeId, month, year, salary, deductions, bonuses } = req.body;
+
+    const employee = await Employee.findById(employeeId).select(
+      "name position role"
+    );
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const docName = `payslip-${employeeId}-${month}-${year}-${Date.now()}`;
+    const documentsDir = path
+      .resolve(__dirname, "../documents")
+      .replace(/\\/g, "/");
+    const pdfFile = path.join(documentsDir, `${docName}.pdf`);
+
+    fs.mkdirSync(documentsDir, { recursive: true });
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    });
+    const stream = fs.createWriteStream(pdfFile);
+
+    doc.pipe(stream);
+
+    const logoPath = path.join(__dirname, "../public/flesk-logo.png");
+    try {
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 50, { width: 100 });
+        doc.moveDown(2);
+      } else {
+        throw new Error("Local logo file not found");
+      }
+    } catch (imageError) {
+      console.error("Error adding logo to PDF:", imageError.message);
+      doc.fontSize(12).text("Logo not available", 50, 50, { align: "left" });
+      doc.moveDown(2);
+    }
+
+    doc
+      .font("Times-Roman")
+      .fontSize(20)
+      .text(`Pay Slip - ${month}/${year}`, { align: "center" });
+    doc.moveDown();
+    doc.fontSize(14).text("FLESK Consulting", { align: "center" });
+    doc.moveDown(2);
+
+    doc.fontSize(12).text(`Employee: ${employee.name}`);
+    doc.text(`Position: ${employee.position || "N/A"}`);
+    doc.text(
+      `Role: ${employee.role === "stagiaire" ? "Stagiaire" : "Employee"}`
+    );
+    doc.moveDown();
+
+    doc.text(`Salary: $${(salary || 0).toFixed(2)}`);
+    doc.text(`Deductions: $${(deductions || 0).toFixed(2)}`);
+    doc.text(`Bonuses: $${(bonuses || 0).toFixed(2)}`);
+    doc.text(
+      `Net Pay: $${((salary || 0) - (deductions || 0) + (bonuses || 0)).toFixed(
+        2
+      )}`
+    );
+    doc.moveDown(2);
+
+    doc.text("Authorized Signature: ____________________", { align: "right" });
+    doc.moveDown();
+    doc.lineWidth(1).moveTo(450, doc.y).lineTo(650, doc.y).stroke();
+
+    doc.end();
+
+    await new Promise((resolve, reject) => {
+      stream.on("finish", resolve);
+      stream.on("error", reject);
+    });
+
+    if (!fs.existsSync(pdfFile)) {
+      throw new Error("PDF file was not generated");
+    }
+
+    try {
+      const cloudinaryResult = await cloudinary.uploader.upload(pdfFile, {
+        resource_type: "raw",
+        public_id: `flesk/documents/${docName}`,
+        format: "pdf",
+      });
+
+      if (fs.existsSync(pdfFile)) {
+        fs.unlinkSync(pdfFile);
+      }
+
+      const document = new Document({
+        employee: employeeId,
+        type: "payslip",
+        fileUrl: cloudinaryResult.secure_url,
+      });
+      await document.save();
+
+      res
+        .status(201)
+        .json({ message: "Pay slip generated successfully", document });
+    } catch (cloudinaryError) {
+      console.error("Cloudinary upload error:", cloudinaryError.message);
+      throw new Error(`Cloudinary upload failed: ${cloudinaryError.message}`);
+    }
+  } catch (error) {
+    console.error("Generate pay slip error:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = {
+  generateAttestation,
+  getDocuments,
+  getAllAttestations,
+  generatePaySlip,
+};

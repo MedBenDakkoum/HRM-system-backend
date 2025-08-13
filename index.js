@@ -6,6 +6,7 @@ const cloudinary = require("cloudinary").v2;
 const employeeRoutes = require("./routes/employees");
 const attendanceRoutes = require("./routes/attendance");
 const documentRoutes = require("./routes/documents");
+const leaveRoutes = require("./routes/leaves");
 
 // Load environment variables
 dotenv.config({ path: "./.env" });
@@ -44,6 +45,7 @@ app.use(express.json());
 app.use("/api/employees", employeeRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/leaves", leaveRoutes);
 
 // MongoDB Connection
 mongoose

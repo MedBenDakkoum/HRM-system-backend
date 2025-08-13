@@ -4,13 +4,16 @@ const {
   generateAttestation,
   getDocuments,
   getAllAttestations,
+  generatePaySlip,
 } = require("../controllers/documentController");
 const mongoose = require("mongoose");
 const Document = require("../models/Document");
+const authMiddleware = require("../middleware/auth");
 
 router.post("/attestation", generateAttestation);
 router.get("/employee/:employeeId", getDocuments);
 router.get("/attestations", getAllAttestations);
+router.post("/payslip", authMiddleware(["admin"]), generatePaySlip);
 router.get("/download/:docId", async (req, res) => {
   try {
     const docId = req.params.docId;
