@@ -12,8 +12,16 @@ const {
 } = require("../controllers/attendanceController");
 const authMiddleware = require("../middleware/auth");
 
-router.post("/", recordAttendance);
-router.get("/employee/:employeeId", getAttendance);
+router.post(
+  "/",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  recordAttendance
+);
+router.get(
+  "/employee/:employeeId",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  getAttendance
+);
 router.get("/qr/:employeeId", authMiddleware(["admin"]), generateQrCode);
 router.post(
   "/scan-qr",
