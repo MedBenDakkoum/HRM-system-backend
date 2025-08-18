@@ -5,30 +5,28 @@ const {
   getDocuments,
   getAllAttestations,
   generatePaySlip,
+  downloadDocument,
+  deleteDocument,
 } = require("../controllers/documentController");
-const mongoose = require("mongoose");
-const Document = require("../models/Document");
 const authMiddleware = require("../middleware/auth");
 
-router.post("/attestation", generateAttestation);
-router.get("/employee/:employeeId", getDocuments);
-router.get("/attestations", getAllAttestations);
+router.post(
+  "/attestation",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  generateAttestation
+);
+router.get(
+  "/employee/:employeeId",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  getDocuments
+);
+router.get("/attestations", authMiddleware(["admin"]), getAllAttestations);
 router.post("/payslip", authMiddleware(["admin"]), generatePaySlip);
-router.get("/download/:docId", async (req, res) => {
-  try {
-    const docId = req.params.docId;
-    if (!mongoose.Types.ObjectId.isValid(docId)) {
-      return res.status(400).json({ message: "Invalid document ID format" });
-    }
-    const document = await Document.findById(docId);
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
-    }
-    res.redirect(document.fileUrl);
-  } catch (error) {
-    console.error("Download document error:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.get(
+  "/download/:docId",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  downloadDocument
+);
+router.delete("/delete/:docId", authMiddleware(["admin"]), deleteDocument);
 
 module.exports = router;

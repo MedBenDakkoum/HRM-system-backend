@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const winston = require("winston"); // Optional: for production logging
+const winston = require("winston");
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -31,6 +31,7 @@ const authMiddleware = (roles = []) => {
       if (!authHeader) {
         logger.warn("No Authorization header provided", {
           url: req.originalUrl,
+          method: req.method,
         });
         return res.status(401).json({
           success: false,
@@ -42,6 +43,8 @@ const authMiddleware = (roles = []) => {
       if (!authHeader.startsWith("Bearer ")) {
         logger.warn("Invalid Authorization header format", {
           url: req.originalUrl,
+          method: req.method,
+          authHeader,
         });
         return res.status(401).json({
           success: false,
@@ -53,6 +56,7 @@ const authMiddleware = (roles = []) => {
       if (!token) {
         logger.warn("No token provided in Authorization header", {
           url: req.originalUrl,
+          method: req.method,
         });
         return res.status(401).json({
           success: false,
@@ -62,12 +66,24 @@ const authMiddleware = (roles = []) => {
 
       // Verify JWT
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (!decoded.id || !decoded.role) {
+        logger.warn("Invalid token payload", {
+          url: req.originalUrl,
+          method: req.method,
+          tokenPayload: decoded,
+        });
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token payload",
+        });
+      }
       req.user = decoded;
 
       // Check role permissions
       if (roles.length && !roles.includes(decoded.role)) {
         logger.warn("Access denied: Insufficient role permissions", {
           url: req.originalUrl,
+          method: req.method,
           userId: decoded.id,
           role: decoded.role,
           requiredRoles: roles,
@@ -80,6 +96,7 @@ const authMiddleware = (roles = []) => {
 
       logger.info("Authentication successful", {
         url: req.originalUrl,
+        method: req.method,
         userId: decoded.id,
         role: decoded.role,
       });
@@ -87,14 +104,18 @@ const authMiddleware = (roles = []) => {
     } catch (error) {
       logger.error("Authentication error", {
         url: req.originalUrl,
+        method: req.method,
         error: error.message,
+        errorName: error.name,
       });
       return res.status(401).json({
         success: false,
         message:
           error.name === "TokenExpiredError"
             ? "Token expired"
-            : "Invalid token",
+            : error.name === "JsonWebTokenError"
+            ? "Invalid token"
+            : "Authentication failed",
       });
     }
   };
