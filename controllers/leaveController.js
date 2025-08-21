@@ -2,7 +2,7 @@ const Leave = require("../models/Leave");
 const Employee = require("../models/Employee");
 const { body, param, validationResult } = require("express-validator");
 const winston = require("winston");
-const { sendEmail } = require("../utils/email");
+const { sendEmailAndNotify } = require("../utils/email"); // Updated to use sendEmailAndNotify
 const mongoose = require("mongoose");
 
 // Configure Winston logger
@@ -105,15 +105,16 @@ const requestLeave = [
       });
 
       await leave.save();
-      await sendEmail(
+      await sendEmailAndNotify(
         employee.email,
         "Leave Request Submitted",
         `Your leave request from ${new Date(
           startDate
         ).toLocaleDateString()} to ${new Date(
           endDate
-        ).toLocaleDateString()} has been submitted for review.`
-      );
+        ).toLocaleDateString()} has been submitted for review.`,
+        { userId: employeeId, type: "leave_request" }
+      ); // Updated to sendEmailAndNotify
       logger.info("Leave requested successfully", {
         leaveId: leave._id,
         employeeId,
@@ -168,15 +169,16 @@ const approveLeave = [
       leave.status = status;
       await leave.save();
 
-      await sendEmail(
+      await sendEmailAndNotify(
         leave.employee.email,
         `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
         `Your leave request from ${new Date(
           leave.startDate
         ).toLocaleDateString()} to ${new Date(
           leave.endDate
-        ).toLocaleDateString()} has been ${status}.`
-      );
+        ).toLocaleDateString()} has been ${status}.`,
+        { userId: leave.employee._id.toString(), type: `leave_${status}` }
+      ); // Updated to sendEmailAndNotify
       logger.info("Leave status updated successfully", {
         leaveId,
         status,

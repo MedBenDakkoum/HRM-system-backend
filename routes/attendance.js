@@ -11,6 +11,7 @@ const {
   getAllPresenceReports,
 } = require("../controllers/attendanceController");
 const authMiddleware = require("../middleware/auth");
+const Notification = require("../models/Notification");
 
 router.post(
   "/",
@@ -40,5 +41,32 @@ router.post(
 );
 router.get("/report/:employeeId", authMiddleware(["admin"]), getPresenceReport);
 router.get("/reports", authMiddleware(["admin"]), getAllPresenceReports);
+router.get(
+  "/notifications",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  async (req, res) => {
+    try {
+      let notifications;
+      if (req.user.role === "admin" && req.query.all === "true") {
+        notifications = await Notification.find().sort({ timestamp: -1 });
+      } else {
+        notifications = await Notification.find({ userId: req.user.id }).sort({
+          timestamp: -1,
+        });
+      }
+      res.status(200).json({
+        success: true,
+        message: "Notifications retrieved successfully",
+        data: { notifications },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  }
+);
 
 module.exports = router;

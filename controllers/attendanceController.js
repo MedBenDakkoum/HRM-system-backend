@@ -3,7 +3,7 @@ const Employee = require("../models/Employee");
 const { body, param, query, validationResult } = require("express-validator");
 const winston = require("winston");
 const QRCode = require("qrcode");
-const { sendEmail } = require("../utils/email");
+const { sendEmailAndNotify } = require("../utils/email");
 const mongoose = require("mongoose");
 
 // Configure Winston logger
@@ -153,12 +153,13 @@ const recordAttendance = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > 100) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
           `Your attendance attempt at ${new Date(
             entryTime
-          ).toLocaleString()} was outside the allowed area.`
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employeeId, type: "location_issue" }
         );
         logger.warn("Location outside allowed area in recordAttendance", {
           employeeId,
@@ -173,10 +174,11 @@ const recordAttendance = [
       // Late attendance notification
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Late Attendance Notification",
-          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employeeId, type: "late_arrival" }
         );
         logger.info("Late attendance recorded", { employeeId, entryTime });
       }
@@ -385,12 +387,13 @@ const scanQrCode = [
 
       // Validate QR code timestamp (5-minute expiry)
       if (Date.now() - timestamp > 5 * 60 * 1000) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Expired QR Code Attempt",
           `Your QR code scan at ${new Date(
             entryTime
-          ).toLocaleString()} was invalid or expired.`
+          ).toLocaleString()} was invalid or expired.`,
+          { userId: employeeId, type: "expired_qr" }
         );
         logger.warn("QR code expired", { employeeId, timestamp });
         return res.status(401).json({
@@ -407,12 +410,13 @@ const scanQrCode = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > 100) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
           `Your QR scan at ${new Date(
             entryTime
-          ).toLocaleString()} was outside the allowed area.`
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employeeId, type: "location_issue" }
         );
         logger.warn("Location outside allowed area in scanQrCode", {
           employeeId,
@@ -427,10 +431,11 @@ const scanQrCode = [
       // Late attendance notification
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Late Attendance Notification",
-          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employeeId, type: "late_arrival" }
         );
         logger.info("Late QR attendance recorded", { employeeId, entryTime });
       }
@@ -523,12 +528,13 @@ const facialAttendance = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > 100) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
           `Your facial scan at ${new Date(
             entryTime
-          ).toLocaleString()} was outside the allowed area.`
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employee._id.toString(), type: "location_issue" }
         );
         logger.warn("Location outside allowed area in facialAttendance", {
           employeeId: employee._id,
@@ -543,10 +549,11 @@ const facialAttendance = [
       // Late attendance notification
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Late Attendance Notification",
-          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employee._id.toString(), type: "late_arrival" }
         );
         logger.info("Late facial attendance recorded", {
           employeeId: employee._id,
@@ -650,12 +657,13 @@ const recordExit = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > 100) {
-        await sendEmail(
+        await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
           `Your exit attempt at ${new Date(
             exitTime
-          ).toLocaleString()} was outside the allowed area.`
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: attendance.employee.toString(), type: "location_issue" }
         );
         logger.warn("Location outside allowed area in recordExit", {
           employeeId: attendance.employee,
