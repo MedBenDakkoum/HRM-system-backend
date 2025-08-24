@@ -25,4 +25,10 @@ router.delete("/:id", authMiddleware(["admin"]), deleteEmployee);
 router.put("/face-template/:id", authMiddleware(["admin"]), updateFaceTemplate);
 router.put("/qr-code/:id", authMiddleware(["admin"]), updateQrCode);
 
+// In routes/employees.js
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.status(200).json({ success: true, message: "Logged out successfully" });
+});
+
 module.exports = router;

@@ -26,35 +26,10 @@ if (process.env.NODE_ENV !== "production") {
 const authMiddleware = (roles = []) => {
   return async (req, res, next) => {
     try {
-      // Check for Authorization header
-      const authHeader = req.header("Authorization");
-      if (!authHeader) {
-        logger.warn("No Authorization header provided", {
-          url: req.originalUrl,
-          method: req.method,
-        });
-        return res.status(401).json({
-          success: false,
-          message: "Authorization header missing",
-        });
-      }
-
-      // Verify token format
-      if (!authHeader.startsWith("Bearer ")) {
-        logger.warn("Invalid Authorization header format", {
-          url: req.originalUrl,
-          method: req.method,
-          authHeader,
-        });
-        return res.status(401).json({
-          success: false,
-          message: "Invalid Authorization header format. Use Bearer <token>",
-        });
-      }
-
-      const token = authHeader.replace("Bearer ", "");
+      // Check for token in cookie
+      const token = req.cookies.token;
       if (!token) {
-        logger.warn("No token provided in Authorization header", {
+        logger.warn("No token provided in cookie", {
           url: req.originalUrl,
           method: req.method,
         });

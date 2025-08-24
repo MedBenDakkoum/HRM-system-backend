@@ -189,10 +189,17 @@ const loginEmployee = [
         employeeId: employee._id,
       });
 
+      // Set HTTP-only cookie instead of returning token
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Use secure in production
+        sameSite: "strict", // Prevent CSRF
+        maxAge: 3600000, // 1 hour in milliseconds
+      });
+
       res.status(200).json({
         success: true,
         message: "Login successful",
-        data: { token },
       });
     } catch (error) {
       logger.error("Error in loginEmployee", { error: error.message });
