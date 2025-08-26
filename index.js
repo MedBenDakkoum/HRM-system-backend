@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
-const cookieParser = require("cookie-parser"); // Add this
+const cookieParser = require("cookie-parser");
 const employeeRoutes = require("./routes/employees");
 const attendanceRoutes = require("./routes/attendance");
 const documentRoutes = require("./routes/documents");
@@ -36,12 +36,20 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // Middleware
-app.use(cors({ credentials: true, origin: "http://localhost:5173" })); // Allow credentials and set frontend origin
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://smart-hrm-system.vercel.app" // Frontend Vercel URL
+        : "http://localhost:5173", // Local dev
+    credentials: true, // Allow cookies
+  })
+);
 app.use(express.json());
-app.use(cookieParser()); // Add cookie-parser middleware
+app.use(cookieParser());
 
 // Routes
 app.use("/api/employees", employeeRoutes);

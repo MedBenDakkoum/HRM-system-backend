@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const winston = require("winston");
 
-// Configure Winston logger
+// Configure Winston logger (unchanged)
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
@@ -17,7 +17,7 @@ const logger = winston.createLogger({
   ],
 });
 
-// Add console logging in development
+// Add console logging in development (unchanged)
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
@@ -26,7 +26,7 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-// Validation middleware for registerEmployee
+// Validation middleware for registerEmployee (unchanged)
 const validateRegisterEmployee = [
   body("name").notEmpty().withMessage("Name is required"),
   body("email").isEmail().withMessage("Valid email is required"),
@@ -39,7 +39,7 @@ const validateRegisterEmployee = [
   body("position").notEmpty().withMessage("Position is required"),
 ];
 
-// Validation middleware for updateEmployee
+// Validation middleware for updateEmployee (unchanged)
 const validateUpdateEmployee = [
   body("name").optional().notEmpty().withMessage("Name cannot be empty"),
   body("email").optional().isEmail().withMessage("Valid email is required"),
@@ -54,11 +54,11 @@ const validateUpdateEmployee = [
 ];
 
 const registerEmployee = [
-  // Validation middleware
+  // Validation middleware (unchanged)
   validateRegisterEmployee,
   async (req, res) => {
     try {
-      // Check validation errors
+      // Check validation errors (unchanged)
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in registerEmployee", {
@@ -74,7 +74,7 @@ const registerEmployee = [
       const { name, email, password, role, position, internshipDetails } =
         req.body;
 
-      // Restrict admin role creation to admins only
+      // Restrict admin role creation to admins only (unchanged)
       if (role === "admin" && (!req.user || req.user.role !== "admin")) {
         logger.warn("Unauthorized attempt to create admin", {
           email,
@@ -87,7 +87,7 @@ const registerEmployee = [
         });
       }
 
-      // Check for existing employee
+      // Check for existing employee (unchanged)
       const existingEmployee = await Employee.findOne({ email });
       if (existingEmployee) {
         logger.warn("Attempt to register existing employee", { email });
@@ -97,10 +97,10 @@ const registerEmployee = [
         });
       }
 
-      // Hash password
+      // Hash password (unchanged)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create employee
+      // Create employee (unchanged)
       const employee = new Employee({
         name,
         email,
@@ -147,7 +147,6 @@ const loginEmployee = [
   body("password").notEmpty().withMessage("Password is required"),
   async (req, res) => {
     try {
-      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in loginEmployee", {
@@ -189,12 +188,12 @@ const loginEmployee = [
         employeeId: employee._id,
       });
 
-      // Set HTTP-only cookie instead of returning token
+      // Set HTTP-only cookie
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Use secure in production
-        sameSite: "strict", // Prevent CSRF
-        maxAge: 3600000, // 1 hour in milliseconds
+        secure: process.env.NODE_ENV === "production", // Secure in production
+        sameSite: "strict",
+        maxAge: 3600 * 1000, // 1 hour
       });
 
       res.status(200).json({
@@ -213,11 +212,9 @@ const loginEmployee = [
 ];
 
 const updateFaceTemplate = [
-  // Validation middleware
   body("faceTemplate").notEmpty().withMessage("Face template is required"),
   async (req, res) => {
     try {
-      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in updateFaceTemplate", {
@@ -273,11 +270,9 @@ const updateFaceTemplate = [
 ];
 
 const updateQrCode = [
-  // Validation middleware
   body("qrCode").notEmpty().withMessage("QR code is required"),
   async (req, res) => {
     try {
-      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in updateQrCode", {
