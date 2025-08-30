@@ -503,14 +503,12 @@ const facialAttendance = [
         });
       }
 
-      // Check authorization
-      if (
-        req.user.id !== employee._id.toString() &&
-        req.user.role !== "admin"
-      ) {
+      // Ensure req.user.id is a string for comparison
+      const userIdStr = req.user.id.toString();
+      if (userIdStr !== employee._id.toString() && req.user.role !== "admin") {
         logger.warn("Unauthorized facial attendance attempt", {
           employeeId: employee._id,
-          requesterId: req.user.id,
+          requesterId: userIdStr,
           requesterRole: req.user.role,
         });
         return res.status(403).json({
@@ -520,7 +518,6 @@ const facialAttendance = [
         });
       }
 
-      // Location validation
       const allowedLocation = { lng: 10.12345, lat: 35.6789 };
       const distance =
         Math.sqrt(
@@ -546,7 +543,6 @@ const facialAttendance = [
         });
       }
 
-      // Late attendance notification
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
         await sendEmailAndNotify(
@@ -575,7 +571,7 @@ const facialAttendance = [
       logger.info("Facial attendance recorded successfully", {
         attendanceId: attendance._id,
         employeeId: employee._id,
-        requesterId: req.user.id,
+        requesterId: userIdStr,
       });
 
       res.status(201).json({
