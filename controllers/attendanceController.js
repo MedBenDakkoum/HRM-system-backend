@@ -146,7 +146,7 @@ const recordAttendance = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 10.12345, lat: 35.6789 };
+      const allowedLocation = { lng: 10.9019136, lat: 35.6253696 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
@@ -403,7 +403,7 @@ const scanQrCode = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 10.12345, lat: 35.6789 };
+      const allowedLocation = { lng: 10.9019136, lat: 35.6253696 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
@@ -518,7 +518,7 @@ const facialAttendance = [
         });
       }
 
-      const allowedLocation = { lng: 10.12345, lat: 35.6789 };
+      const allowedLocation = { lng: 10.9019136, lat: 35.6253696 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
@@ -646,7 +646,7 @@ const recordExit = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 10.12345, lat: 35.6789 };
+      const allowedLocation = { lng: 10.9019136, lat: 35.6253696 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
