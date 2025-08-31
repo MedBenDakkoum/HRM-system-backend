@@ -9,26 +9,34 @@ const {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  getCurrentUser,
 } = require("../controllers/employeeController");
 const authMiddleware = require("../middleware/auth");
 
-router.post("/register", authMiddleware([]), registerEmployee); // Optional: restrict to admins with authMiddleware(["admin"])
+// Employee routes
+router.post("/register", authMiddleware(["admin"]), registerEmployee);
 router.post("/login", loginEmployee);
+router.patch(
+  "/:id/face-template",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  updateFaceTemplate
+);
+router.patch(
+  "/:id/qr-code",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  updateQrCode
+);
 router.get("/", authMiddleware(["admin"]), getEmployees);
+
+// Place /me before /:id to ensure it matches first
+router.get("/me", authMiddleware(), getCurrentUser);
+
 router.get(
   "/:id",
   authMiddleware(["employee", "stagiaire", "admin"]),
   getEmployeeById
 );
-router.put("/:id", authMiddleware(["admin"]), updateEmployee);
+router.patch("/:id", authMiddleware(["admin"]), updateEmployee);
 router.delete("/:id", authMiddleware(["admin"]), deleteEmployee);
-router.put("/face-template/:id", authMiddleware(["admin"]), updateFaceTemplate);
-router.put("/qr-code/:id", authMiddleware(["admin"]), updateQrCode);
-
-// In routes/employees.js
-router.post("/logout", (req, res) => {
-  res.clearCookie("token");
-  res.status(200).json({ success: true, message: "Logged out successfully" });
-});
 
 module.exports = router;

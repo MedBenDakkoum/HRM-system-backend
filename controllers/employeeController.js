@@ -507,6 +507,37 @@ const deleteEmployee = async (req, res) => {
   }
 };
 
+// New function for /me endpoint
+const getCurrentUser = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id).select(
+      "name email role _id"
+    );
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    logger.info("Current user retrieved successfully", {
+      userId: employee._id,
+      role: employee.role,
+    });
+    res.status(200).json({
+      success: true,
+      message: "User details retrieved successfully",
+      data: { user: employee },
+    });
+  } catch (error) {
+    logger.error("Error in getCurrentUser", { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   registerEmployee,
   loginEmployee,
@@ -516,4 +547,5 @@ module.exports = {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  getCurrentUser,
 };

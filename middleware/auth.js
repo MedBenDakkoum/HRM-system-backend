@@ -28,6 +28,7 @@ const authMiddleware = (roles = []) => {
     try {
       // Check for token in cookie
       const token = req.cookies.token;
+      logger.info("Received token:", { token: token ? "present" : "absent" }); // Debug log
       if (!token) {
         logger.warn("No token provided in cookie", {
           url: req.originalUrl,
@@ -54,7 +55,18 @@ const authMiddleware = (roles = []) => {
       }
       req.user = decoded;
 
-      // Check role permissions
+      // ✅ Bypass role check for /me endpoint
+      if (req.originalUrl.endsWith("/me") && req.method === "GET") {
+        logger.info("Authentication successful for /me", {
+          url: req.originalUrl,
+          method: req.method,
+          userId: decoded.id,
+          role: decoded.role,
+        });
+        return next();
+      }
+
+      // Check role permissions for other endpoints
       if (roles.length && !roles.includes(decoded.role)) {
         logger.warn("Access denied: Insufficient role permissions", {
           url: req.originalUrl,
