@@ -39,4 +39,9 @@ router.get(
 router.patch("/:id", authMiddleware(["admin"]), updateEmployee);
 router.delete("/:id", authMiddleware(["admin"]), deleteEmployee);
 
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.status(200).json({ success: true, message: "Logged out successfully" });
+});
+
 module.exports = router;
