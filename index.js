@@ -43,13 +43,18 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? "https://smart-hrm-system.vercel.app" // Frontend Vercel URL
+        ? [
+            "https://smart-hrm-system.vercel.app", // main branch
+            "https://hrm-system-git-test-ec63dbf-mohamed-s-projects-62a99681.vercel.app", // preview branch
+          ]
         : "http://localhost:5173", // Local dev
     credentials: true, // Allow cookies
+    optionsSuccessStatus: 200, // Some browsers require this
   })
 );
 app.use(express.json());
 app.use(cookieParser());
+
 
 // Routes
 app.use("/api/employees", employeeRoutes);
