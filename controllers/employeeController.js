@@ -64,7 +64,7 @@ const registerEmployee = [
         logger.warn("Validation errors in registerEmployee", {
           errors: errors.array(),
         });
-        return res.status(400).json({
+        return res.status(403).json({
           success: false,
           message: "Validation errors",
           errors: errors.array(),
@@ -236,6 +236,20 @@ const updateFaceTemplate = [
         return res.status(404).json({
           success: false,
           message: "Employee not found",
+        });
+      }
+
+      // Check authorization
+      if (req.user.role !== "admin" && req.user.id !== req.params.id) {
+        logger.warn("Unauthorized attempt to update face template", {
+          employeeId: req.params.id,
+          requesterId: req.user.id,
+          requesterRole: req.user.role,
+        });
+        return res.status(403).json({
+          success: false,
+          message:
+            "Access denied: Only admins can update others' face templates, or you can only update your own",
         });
       }
 

@@ -16,8 +16,9 @@ const authMiddleware = require("../middleware/auth");
 // Employee routes
 router.post("/register", authMiddleware(["admin"]), registerEmployee);
 router.post("/login", loginEmployee);
+// Changed from "/:id/face-template" to "/face-template/:id" to match your Postman request
 router.patch(
-  "/:id/face-template",
+  "/face-template/:id",
   authMiddleware(["employee", "stagiaire", "admin"]),
   updateFaceTemplate
 );
@@ -40,7 +41,12 @@ router.patch("/:id", authMiddleware(["admin"]), updateEmployee);
 router.delete("/:id", authMiddleware(["admin"]), deleteEmployee);
 
 router.post("/logout", (req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
