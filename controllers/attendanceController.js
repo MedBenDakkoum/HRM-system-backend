@@ -105,6 +105,13 @@ const validateReport = [
     .withMessage("Valid endDate is required"),
 ];
 
+// Default environment variables with fallback values
+const allowedLocation = {
+  lng: parseFloat(process.env.ALLOWED_LNG) || 8.8362755,
+  lat: parseFloat(process.env.ALLOWED_LAT) || 33.1245286,
+};
+const allowedRadius = parseInt(process.env.ALLOWED_RADIUS) || 500; // Default to 500 meters
+
 const recordAttendance = [
   validateRecordAttendance,
   async (req, res) => {
@@ -146,13 +153,12 @@ const recordAttendance = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 8.8362755, lat: 33.1245286 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
-      if (distance > 100) {
+      if (distance > allowedRadius) {
         await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
@@ -403,13 +409,12 @@ const scanQrCode = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 8.8362755, lat: 33.1245286 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
-      if (distance > 100) {
+      if (distance > allowedRadius) {
         await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
@@ -518,13 +523,13 @@ const facialAttendance = [
         });
       }
 
-      const allowedLocation = { lng: 8.8362755, lat: 33.1245286 };
+      // Location validation
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
-      if (distance > 100) {
+      if (distance > allowedRadius) {
         await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
@@ -646,13 +651,12 @@ const recordExit = [
       }
 
       // Location validation
-      const allowedLocation = { lng: 8.8362755, lat: 33.1245286 };
       const distance =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
-      if (distance > 100) {
+      if (distance > allowedRadius) {
         await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
