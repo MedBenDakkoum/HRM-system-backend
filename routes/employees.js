@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   registerEmployee,
   loginEmployee,
+  registerFace,
   updateFaceTemplate,
   updateQrCode,
   getEmployees,
@@ -10,13 +11,23 @@ const {
   updateEmployee,
   deleteEmployee,
   getCurrentUser,
+  requestFaceUpdate,
 } = require("../controllers/employeeController");
 const authMiddleware = require("../middleware/auth");
 
 // Employee routes
 router.post("/register", authMiddleware(["admin"]), registerEmployee);
 router.post("/login", loginEmployee);
-// Changed from "/:id/face-template" to "/face-template/:id" to match your Postman request
+router.post(
+  "/register-face",
+  authMiddleware(["employee", "stagiaire"]),
+  registerFace
+); // New endpoint
+router.post(
+  "/request-face-update",
+  authMiddleware(["employee", "stagiaire"]),
+  requestFaceUpdate
+);
 router.patch(
   "/face-template/:id",
   authMiddleware(["employee", "stagiaire", "admin"]),

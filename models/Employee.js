@@ -38,9 +38,9 @@ const employeeSchema = new mongoose.Schema(
       supervisor: { type: String },
       objectives: { type: String },
     },
-    faceTemplate: {
-      type: String,
-      trim: true,
+    faceDescriptor: {
+      type: [Number], // Array for face-api.js descriptor (128 numbers)
+      default: undefined,
     },
     qrCode: {
       type: String,

@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
 const winston = require("winston");
 
-// Configure Winston logger (unchanged)
+// Configure Winston logger
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
@@ -17,7 +17,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// Add console logging in development (unchanged)
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
@@ -26,7 +25,7 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-// Validation middleware for registerEmployee (unchanged)
+// Validation middleware for registerEmployee
 const validateRegisterEmployee = [
   body("name").notEmpty().withMessage("Name is required"),
   body("email").isEmail().withMessage("Valid email is required"),
@@ -39,7 +38,7 @@ const validateRegisterEmployee = [
   body("position").notEmpty().withMessage("Position is required"),
 ];
 
-// Validation middleware for updateEmployee (unchanged)
+// Validation middleware for updateEmployee
 const validateUpdateEmployee = [
   body("name").optional().notEmpty().withMessage("Name cannot be empty"),
   body("email").optional().isEmail().withMessage("Valid email is required"),
@@ -53,12 +52,22 @@ const validateUpdateEmployee = [
     .withMessage("Position cannot be empty"),
 ];
 
+// New validation for registerFace
+const validateRegisterFace = [
+  body("faceDescriptor")
+    .isArray()
+    .withMessage("faceDescriptor must be an array")
+    .custom((value) => value.length === 128)
+    .withMessage("faceDescriptor must be 128 numbers"),
+  body("faceDescriptor.*")
+    .isFloat()
+    .withMessage("faceDescriptor must be numbers"),
+];
+
 const registerEmployee = [
-  // Validation middleware (unchanged)
   validateRegisterEmployee,
   async (req, res) => {
     try {
-      // Check validation errors (unchanged)
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in registerEmployee", {
@@ -74,7 +83,6 @@ const registerEmployee = [
       const { name, email, password, role, position, internshipDetails } =
         req.body;
 
-      // Restrict admin role creation to admins only (unchanged)
       if (role === "admin" && (!req.user || req.user.role !== "admin")) {
         logger.warn("Unauthorized attempt to create admin", {
           email,
@@ -87,7 +95,6 @@ const registerEmployee = [
         });
       }
 
-      // Check for existing employee (unchanged)
       const existingEmployee = await Employee.findOne({ email });
       if (existingEmployee) {
         logger.warn("Attempt to register existing employee", { email });
@@ -97,15 +104,13 @@ const registerEmployee = [
         });
       }
 
-      // Hash password (unchanged)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create employee (unchanged)
       const employee = new Employee({
         name,
         email,
         password: hashedPassword,
-        role: role || "employee", // Default to employee if role not provided
+        role: role || "employee",
         position,
         internshipDetails,
       });
@@ -142,7 +147,6 @@ const registerEmployee = [
 ];
 
 const loginEmployee = [
-  // Validation middleware
   body("email").isEmail().withMessage("Valid email is required"),
   body("password").notEmpty().withMessage("Password is required"),
   async (req, res) => {
@@ -188,12 +192,11 @@ const loginEmployee = [
         employeeId: employee._id,
       });
 
-      // Set HTTP-only cookie
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Secure in production
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Use 'lax' for development
-        maxAge: 3600 * 1000, // 1 hour
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 3600 * 1000,
       });
 
       res.status(200).json({
@@ -211,8 +214,64 @@ const loginEmployee = [
   },
 ];
 
+const registerFace = [
+  validateRegisterFace,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        logger.warn("Validation errors in registerFace", {
+          errors: errors.array(),
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Validation errors",
+          errors: errors.array(),
+        });
+      }
+
+      const { faceDescriptor } = req.body;
+      const employeeId = req.user.id;
+
+      const employee = await Employee.findById(employeeId);
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found",
+        });
+      }
+
+      employee.faceDescriptor = faceDescriptor;
+      await employee.save();
+
+      logger.info("Face descriptor registered successfully", {
+        employeeId: employee._id,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Face registered successfully",
+      });
+    } catch (error) {
+      logger.error("Error in registerFace", { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  },
+];
+
 const updateFaceTemplate = [
-  body("faceTemplate").notEmpty().withMessage("Face template is required"),
+  body("faceDescriptor")
+    .isArray()
+    .withMessage("faceDescriptor must be an array")
+    .custom((value) => value.length === 128)
+    .withMessage("faceDescriptor must be 128 numbers"),
+  body("faceDescriptor.*")
+    .isFloat()
+    .withMessage("faceDescriptor must be numbers"),
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -227,7 +286,7 @@ const updateFaceTemplate = [
         });
       }
 
-      const { faceTemplate } = req.body;
+      const { faceDescriptor } = req.body;
       const employee = await Employee.findById(req.params.id);
       if (!employee) {
         logger.warn("Employee not found in updateFaceTemplate", {
@@ -239,7 +298,6 @@ const updateFaceTemplate = [
         });
       }
 
-      // Check authorization
       if (req.user.role !== "admin" && req.user.id !== req.params.id) {
         logger.warn("Unauthorized attempt to update face template", {
           employeeId: req.params.id,
@@ -253,22 +311,22 @@ const updateFaceTemplate = [
         });
       }
 
-      employee.faceTemplate = faceTemplate;
+      employee.faceDescriptor = faceDescriptor;
       await employee.save();
-      logger.info("Face template updated successfully", {
+      logger.info("Face descriptor updated successfully", {
         employeeId: employee._id,
       });
 
       res.status(200).json({
         success: true,
-        message: "Face template updated successfully",
+        message: "Face descriptor updated successfully",
         data: {
           employee: {
             _id: employee._id,
             name: employee.name,
             email: employee.email,
             role: employee.role,
-            faceTemplate: employee.faceTemplate,
+            faceDescriptor: employee.faceDescriptor,
           },
         },
       });
@@ -342,7 +400,7 @@ const updateQrCode = [
 const getEmployees = async (req, res) => {
   try {
     const employees = await Employee.find().select(
-      "-password -faceTemplate -qrCode"
+      "-password -faceDescriptor -qrCode"
     );
     logger.info("Retrieved all employees", { requesterId: req.user.id });
 
@@ -363,7 +421,6 @@ const getEmployees = async (req, res) => {
 
 const getEmployeeById = async (req, res) => {
   try {
-    // Check if the requester is accessing their own data or is an admin
     if (req.user.id !== req.params.id && req.user.role !== "admin") {
       logger.warn("Unauthorized access to employee data", {
         employeeId: req.params.id,
@@ -377,7 +434,7 @@ const getEmployeeById = async (req, res) => {
     }
 
     const employee = await Employee.findById(req.params.id).select(
-      "-password -faceTemplate -qrCode"
+      "-password -faceDescriptor -qrCode"
     );
     if (!employee) {
       logger.warn("Employee not found in getEmployeeById", {
@@ -409,11 +466,9 @@ const getEmployeeById = async (req, res) => {
 };
 
 const updateEmployee = [
-  // Validation middleware
   validateUpdateEmployee,
   async (req, res) => {
     try {
-      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         logger.warn("Validation errors in updateEmployee", {
@@ -438,7 +493,6 @@ const updateEmployee = [
         });
       }
 
-      // Restrict role updates to admins only
       if (role && req.user.role !== "admin") {
         logger.warn("Unauthorized attempt to update role", {
           employeeId: req.params.id,
@@ -521,7 +575,6 @@ const deleteEmployee = async (req, res) => {
   }
 };
 
-// New function for /me endpoint
 const getCurrentUser = async (req, res) => {
   try {
     const employee = await Employee.findById(req.user.id).select(
@@ -552,9 +605,62 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+const requestFaceUpdate = [
+  body("faceDescriptor")
+    .isArray()
+    .withMessage("faceDescriptor must be an array")
+    .custom((value) => value.length === 128)
+    .withMessage("faceDescriptor must be 128 numbers"),
+  body("faceDescriptor.*")
+    .isFloat()
+    .withMessage("faceDescriptor must be numbers"),
+  body("employeeId").isMongoId().withMessage("Valid employeeId is required"),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        logger.warn("Validation errors in requestFaceUpdate", {
+          errors: errors.array(),
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Validation errors",
+          errors: errors.array(),
+        });
+      }
+
+      const { faceDescriptor, employeeId } = req.body;
+
+      // Notify admin (implement email or internal notification system)
+      await sendEmailAndNotify(
+        process.env.EMAIL_USER, // Replace with admin email logic
+        "Face Update Request",
+        `Employee ${employeeId} has requested a face template update. Please approve or reject.`,
+        { userId: employeeId, type: "face_update_request" }
+      );
+
+      logger.info("Face update request submitted", { employeeId });
+
+      res.status(200).json({
+        success: true,
+        message: "Face update request submitted. Awaiting admin approval.",
+      });
+    } catch (error) {
+      logger.error("Error in requestFaceUpdate", { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  },
+];
+
+// Add to module.exports
 module.exports = {
   registerEmployee,
   loginEmployee,
+  registerFace,
   updateFaceTemplate,
   updateQrCode,
   getEmployees,
@@ -562,4 +668,5 @@ module.exports = {
   updateEmployee,
   deleteEmployee,
   getCurrentUser,
+  requestFaceUpdate, // New endpoint
 };

@@ -1,18 +1,14 @@
 const express = require("express");
+const path = require("path");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cloudinary = require("cloudinary").v2;
 const cookieParser = require("cookie-parser");
-const employeeRoutes = require("./routes/employees");
-const attendanceRoutes = require("./routes/attendance");
-const documentRoutes = require("./routes/documents");
-const leaveRoutes = require("./routes/leaves");
+const fs = require("fs");
 
-// Load environment variables
 dotenv.config({ path: "./.env" });
 
-// Debug environment variables
 console.log("Environment Variables:", {
   PORT: process.env.PORT,
   MONGO_URI: process.env.MONGO_URI,
@@ -23,7 +19,6 @@ console.log("Environment Variables:", {
     : undefined,
 });
 
-// Test Cloudinary configuration
 try {
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -38,47 +33,56 @@ try {
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware
 app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
         ? [
-            "https://smart-hrm-system.vercel.app", // main branch
-            "https://hrm-system-git-test-ec63dbf-mohamed-s-projects-62a99681.vercel.app", // preview branch
+            "https://smart-hrm-system.vercel.app",
+            "https://hrm-system-git-test-ec63dbf-mohamed-s-projects-62a99681.vercel.app",
           ]
-        : "http://localhost:5173", // Local dev
-    credentials: true, // Allow cookies
-    optionsSuccessStatus: 200, // Some browsers require this
+        : "http://localhost:5173",
+    credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
 
+const modelsPath = path.join(__dirname, "public", "models");
+console.log("Models path resolved to:", modelsPath);
+if (!fs.existsSync(modelsPath)) {
+  console.error("Models directory does not exist at:", modelsPath);
+  fs.mkdirSync(modelsPath, { recursive: true });
+  console.log("Created models directory at:", modelsPath);
+} else {
+  console.log("Checking permissions for:", modelsPath);
+  fs.accessSync(modelsPath, fs.constants.R_OK);
+  console.log("Models directory is readable, serving files...");
+  app.use("/models", express.static(modelsPath));
+}
 
-// Routes
-app.use("/api/employees", employeeRoutes);
-app.use("/api/attendance", attendanceRoutes);
-app.use("/api/documents", documentRoutes);
-app.use("/api/leaves", leaveRoutes);
+app.use("/api/employees", require("./routes/employees"));
+app.use("/api/attendance", require("./routes/attendance"));
+app.use("/api/documents", require("./routes/documents"));
+app.use("/api/leaves", require("./routes/leaves"));
+app.get("/models/test", (req, res) => {
+  res.send("Models folder is accessible");
+});
 
-// MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Basic Route
 app.get("/", (req, res) => {
   res.send("FLESK Backend is running");
 });
 
-// 404 Middleware
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

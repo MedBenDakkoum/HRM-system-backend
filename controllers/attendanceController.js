@@ -60,7 +60,13 @@ const validateScanQr = [
 ];
 
 const validateFacialAttendance = [
-  body("faceTemplate").notEmpty().withMessage("Face template is required"),
+  body("employeeId").isMongoId().withMessage("Valid employeeId is required"),
+  body("faceTemplate")
+    .isArray()
+    .withMessage("faceTemplate must be an array")
+    .custom((value) => value.length === 128)
+    .withMessage("faceTemplate must be 128 numbers"),
+  body("faceTemplate.*").isFloat().withMessage("faceTemplate must be numbers"),
   body("entryTime")
     .isISO8601()
     .toDate()
@@ -478,6 +484,17 @@ const scanQrCode = [
   },
 ];
 
+function calculateDistance(descriptor1, descriptor2) {
+  if (!descriptor1 || !descriptor2 || descriptor1.length !== descriptor2.length)
+    return Infinity;
+  return Math.sqrt(
+    descriptor1.reduce(
+      (sum, val, i) => sum + Math.pow(val - descriptor2[i], 2),
+      0
+    )
+  );
+}
+
 const facialAttendance = [
   validateFacialAttendance,
   async (req, res) => {
@@ -494,25 +511,40 @@ const facialAttendance = [
         });
       }
 
-      const { faceTemplate, location, entryTime } = req.body;
+      const { employeeId, faceTemplate, entryTime, location } = req.body;
+      const userIdStr = req.user.id.toString();
 
-      // Find employee by faceTemplate
-      const employee = await Employee.findOne({ faceTemplate });
-      if (!employee) {
+      // Find the employee by employeeId
+      const employee = await Employee.findById(employeeId);
+      if (!employee || !employee.faceDescriptor) {
         logger.warn(
-          "No employee matched with faceTemplate in facialAttendance"
+          "Employee or faceDescriptor not found in facialAttendance",
+          { employeeId }
         );
+        return res.status(401).json({
+          success: false,
+          message: "Employee or face descriptor not found",
+        });
+      }
+
+      // Compare face descriptors
+      const distance = calculateDistance(faceTemplate, employee.faceDescriptor);
+      logger.info("Face recognition distance", { employeeId, distance });
+      if (distance >= 0.6) {
+        logger.warn("Face recognition failed due to distance", {
+          employeeId,
+          distance,
+        });
         return res.status(401).json({
           success: false,
           message: "Face not recognized",
         });
       }
 
-      // Ensure req.user.id is a string for comparison
-      const userIdStr = req.user.id.toString();
+      // Authorization check
       if (userIdStr !== employee._id.toString() && req.user.role !== "admin") {
         logger.warn("Unauthorized facial attendance attempt", {
-          employeeId: employee._id,
+          employeeId,
           requesterId: userIdStr,
           requesterRole: req.user.role,
         });
@@ -524,12 +556,12 @@ const facialAttendance = [
       }
 
       // Location validation
-      const distance =
+      const distanceCheck =
         Math.sqrt(
           Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
-      if (distance > allowedRadius) {
+      if (distanceCheck > allowedRadius) {
         await sendEmailAndNotify(
           employee.email,
           "Unauthorized Location Attempt",
@@ -539,8 +571,8 @@ const facialAttendance = [
           { userId: employee._id.toString(), type: "location_issue" }
         );
         logger.warn("Location outside allowed area in facialAttendance", {
-          employeeId: employee._id,
-          distance,
+          employeeId,
+          distance: distanceCheck,
         });
         return res.status(400).json({
           success: false,
@@ -548,6 +580,7 @@ const facialAttendance = [
         });
       }
 
+      // Late attendance notification
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
         await sendEmailAndNotify(
@@ -557,11 +590,12 @@ const facialAttendance = [
           { userId: employee._id.toString(), type: "late_arrival" }
         );
         logger.info("Late facial attendance recorded", {
-          employeeId: employee._id,
+          employeeId,
           entryTime,
         });
       }
 
+      // Record attendance
       const attendance = new Attendance({
         employee: employee._id,
         entryTime,
@@ -575,7 +609,7 @@ const facialAttendance = [
       await attendance.save();
       logger.info("Facial attendance recorded successfully", {
         attendanceId: attendance._id,
-        employeeId: employee._id,
+        employeeId,
         requesterId: userIdStr,
       });
 
