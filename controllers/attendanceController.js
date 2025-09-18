@@ -792,6 +792,7 @@ const getPresenceReport = [
 
       const report = {
         employeeId,
+        employeeName: employee.name,
         period: period || "custom",
         totalDays: 0,
         totalHours: 0,
@@ -920,6 +921,40 @@ const getAllPresenceReports = async (req, res) => {
   }
 };
 
+const getAllEmployees = async (req, res) => {
+  try {
+    // Check if requester is admin
+    if (req.user.role !== "admin") {
+      logger.warn("Unauthorized access to getAllEmployees", {
+        requesterId: req.user.id,
+        requesterRole: req.user.role,
+      });
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Requires admin role",
+      });
+    }
+
+    const employees = await Employee.find().select("_id name");
+    logger.info("All employees retrieved successfully", {
+      requesterId: req.user.id,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Employees retrieved successfully",
+      data: { employees },
+    });
+  } catch (error) {
+    logger.error("Error in getAllEmployees", { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   recordAttendance,
   getAttendance,
@@ -929,4 +964,5 @@ module.exports = {
   recordExit,
   getPresenceReport,
   getAllPresenceReports,
+  getAllEmployees,
 };

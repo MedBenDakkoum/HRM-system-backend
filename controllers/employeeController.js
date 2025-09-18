@@ -399,15 +399,17 @@ const updateQrCode = [
 
 const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().select(
-      "-password -faceDescriptor -qrCode"
-    );
+    const employees = await Employee.find().select("-password -qrCode");
+    const employeesWithStatus = employees.map((emp) => ({
+      ...emp.toObject(),
+      faceDescriptorRegistered: emp.faceDescriptor?.length === 128,
+    }));
     logger.info("Retrieved all employees", { requesterId: req.user.id });
 
     res.status(200).json({
       success: true,
       message: "Employees retrieved successfully",
-      data: { employees },
+      data: { employees: employeesWithStatus },
     });
   } catch (error) {
     logger.error("Error in getEmployees", { error: error.message });
@@ -434,7 +436,7 @@ const getEmployeeById = async (req, res) => {
     }
 
     const employee = await Employee.findById(req.params.id).select(
-      "-password -faceDescriptor -qrCode"
+      "-password -qrCode"
     );
     if (!employee) {
       logger.warn("Employee not found in getEmployeeById", {
@@ -446,6 +448,11 @@ const getEmployeeById = async (req, res) => {
       });
     }
 
+    const employeeWithStatus = {
+      ...employee.toObject(),
+      faceDescriptorRegistered: employee.faceDescriptor?.length === 128,
+    };
+
     logger.info("Employee retrieved successfully", {
       employeeId: employee._id,
       requesterId: req.user.id,
@@ -453,7 +460,7 @@ const getEmployeeById = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Employee retrieved successfully",
-      data: { employee },
+      data: { employee: employeeWithStatus },
     });
   } catch (error) {
     logger.error("Error in getEmployeeById", { error: error.message });
