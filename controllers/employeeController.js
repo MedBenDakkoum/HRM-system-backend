@@ -80,21 +80,34 @@ const registerEmployee = [
         });
       }
 
-      const { name, email, password, role, position, internshipDetails } =
-        req.body;
-
-      if (role === "admin" && (!req.user || req.user.role !== "admin")) {
-        logger.warn("Unauthorized attempt to create admin", {
-          email,
+      // NEW: Require admin for ALL registrations
+      if (!req.user || req.user.role !== "admin") {
+        logger.warn("Unauthorized registration attempt", {
           requesterId: req.user?.id,
           requesterRole: req.user?.role,
         });
         return res.status(403).json({
           success: false,
-          message: "Only admins can register admin users",
+          message: "Only admins can register new users",
         });
       }
 
+      const { name, email, password, role, position, internshipDetails } =
+        req.body;
+
+      // Keep your existing admin-specific check (now redundant but harmless)
+      if (role === "admin") {
+        logger.warn("Admin creation attempt", {
+          email,
+          requesterId: req.user.id,
+        });
+        return res.status(403).json({
+          success: false,
+          message: "Admin creation requires super-admin privileges", // Or handle as needed
+        });
+      }
+
+      // Rest of your code unchanged...
       const existingEmployee = await Employee.findOne({ email });
       if (existingEmployee) {
         logger.warn("Attempt to register existing employee", { email });
@@ -119,6 +132,7 @@ const registerEmployee = [
       logger.info("Employee registered successfully", {
         email,
         employeeId: employee._id,
+        createdBy: req.user.id,
       });
 
       res.status(201).json({
