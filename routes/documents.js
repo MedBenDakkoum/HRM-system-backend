@@ -4,6 +4,7 @@ const {
   generateAttestation,
   getDocuments,
   getAllAttestations,
+  getAllDocuments,
   generatePaySlip,
   downloadDocument,
   deleteDocument,
@@ -21,6 +22,7 @@ router.get(
   getDocuments
 );
 router.get("/attestations", authMiddleware(["admin"]), getAllAttestations);
+router.get("/all", authMiddleware(["admin"]), getAllDocuments);
 router.post("/payslip", authMiddleware(["admin"]), generatePaySlip);
 router.get(
   "/download/:docId",

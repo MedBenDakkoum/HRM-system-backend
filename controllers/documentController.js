@@ -461,10 +461,24 @@ const deleteDocument = async (req, res) => {
   }
 };
 
+const getAllDocuments = async (req, res) => {
+  try {
+    console.log("Querying all documents");
+    const documents = await Document.find({}).populate("employee", "name");
+    if (!documents.length) {
+      return res.status(404).json({ message: "No documents found" });
+    }
+    res.status(200).json(documents);
+  } catch (error) {
+    console.error("Get all documents error:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 module.exports = {
   generateAttestation,
   getDocuments,
   getAllAttestations,
+  getAllDocuments,
   generatePaySlip,
   downloadDocument,
   deleteDocument,
