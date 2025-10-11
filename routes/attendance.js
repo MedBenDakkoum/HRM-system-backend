@@ -9,6 +9,8 @@ const {
   recordExit,
   getPresenceReport,
   getAllPresenceReports,
+  getDailyStats,
+  getTotalAttendanceCount,
 } = require("../controllers/attendanceController");
 const authMiddleware = require("../middleware/auth");
 const Notification = require("../models/Notification");
@@ -41,6 +43,8 @@ router.post(
 );
 router.get("/report/:employeeId", authMiddleware(["admin"]), getPresenceReport);
 router.get("/reports", authMiddleware(["admin"]), getAllPresenceReports);
+router.get("/daily-stats", authMiddleware(["admin"]), getDailyStats);
+router.get("/total-count", authMiddleware(["admin"]), getTotalAttendanceCount);
 router.get(
   "/notifications",
   authMiddleware(["employee", "stagiaire", "admin"]),

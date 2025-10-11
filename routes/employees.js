@@ -13,10 +13,16 @@ const {
   getCurrentUser,
   requestFaceUpdate,
 } = require("../controllers/employeeController");
+const {
+  getUserNotifications,
+  markAsRead,
+  markAllAsRead,
+} = require("../controllers/notificationController");
 const authMiddleware = require("../middleware/auth");
 
 // Employee routes
 router.post("/register", authMiddleware(["admin"]), registerEmployee);
+router.post("/register-admin", registerEmployee); // Allow initial admin registration without auth
 router.post("/login", loginEmployee);
 router.post(
   "/register-face",
@@ -50,6 +56,19 @@ router.get(
 );
 router.patch("/:id", authMiddleware(["admin"]), updateEmployee);
 router.delete("/:id", authMiddleware(["admin"]), deleteEmployee);
+
+// Notification routes
+router.get("/:userId/notifications", authMiddleware(), getUserNotifications);
+router.patch(
+  "/notifications/:notificationId/read",
+  authMiddleware(),
+  markAsRead
+);
+router.patch(
+  "/:userId/notifications/read-all",
+  authMiddleware(),
+  markAllAsRead
+);
 
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {

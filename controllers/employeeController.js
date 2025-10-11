@@ -80,31 +80,41 @@ const registerEmployee = [
         });
       }
 
-      // NEW: Require admin for ALL registrations
-      if (!req.user || req.user.role !== "admin") {
-        logger.warn("Unauthorized registration attempt", {
-          requesterId: req.user?.id,
-          requesterRole: req.user?.role,
-        });
-        return res.status(403).json({
-          success: false,
-          message: "Only admins can register new users",
-        });
-      }
-
       const { name, email, password, role, position, internshipDetails } =
         req.body;
 
-      // Keep your existing admin-specific check (now redundant but harmless)
+      // Allow admin creation if no admins exist in the system
       if (role === "admin") {
-        logger.warn("Admin creation attempt", {
-          email,
-          requesterId: req.user.id,
-        });
-        return res.status(403).json({
-          success: false,
-          message: "Admin creation requires super-admin privileges", // Or handle as needed
-        });
+        const existingAdmins = await Employee.find({ role: "admin" });
+        if (existingAdmins.length > 0) {
+          // If admins exist, require admin privileges
+          if (!req.user || req.user.role !== "admin") {
+            logger.warn("Unauthorized admin creation attempt", {
+              email,
+              requesterId: req.user?.id,
+              requesterRole: req.user?.role,
+            });
+            return res.status(403).json({
+              success: false,
+              message: "Only existing admins can create new admin users",
+            });
+          }
+        } else {
+          // If no admins exist, allow creation (for initial setup)
+          logger.info("Creating first admin user", { email });
+        }
+      } else {
+        // For non-admin roles, require admin privileges
+        if (!req.user || req.user.role !== "admin") {
+          logger.warn("Unauthorized registration attempt", {
+            requesterId: req.user?.id,
+            requesterRole: req.user?.role,
+          });
+          return res.status(403).json({
+            success: false,
+            message: "Only admins can register new users",
+          });
+        }
       }
 
       // Rest of your code unchanged...

@@ -105,6 +105,8 @@ const requestLeave = [
       });
 
       await leave.save();
+
+      // Notify employee
       await sendEmailAndNotify(
         employee.email,
         "Leave Request Submitted",
@@ -114,7 +116,25 @@ const requestLeave = [
           endDate
         ).toLocaleDateString()} has been submitted for review.`,
         { userId: employeeId, type: "leave_request" }
-      ); // Updated to sendEmailAndNotify
+      );
+
+      // Notify all admins about the new leave request
+      const admins = await Employee.find({ role: "admin" });
+      const Notification = require("../models/Notification");
+
+      for (const admin of admins) {
+        const notification = new Notification({
+          userId: admin._id,
+          message: `${employee.name} requested leave from ${new Date(
+            startDate
+          ).toLocaleDateString()} to ${new Date(
+            endDate
+          ).toLocaleDateString()}. Reason: ${reason}`,
+          type: "leave_request",
+        });
+        await notification.save();
+      }
+
       logger.info("Leave requested successfully", {
         leaveId: leave._id,
         employeeId,

@@ -955,6 +955,91 @@ const getAllEmployees = async (req, res) => {
   }
 };
 
+// Get total attendance count (for dashboard stats)
+const getTotalAttendanceCount = async (req, res) => {
+  try {
+    const totalCount = await Attendance.countDocuments();
+
+    logger.info("Total attendance count retrieved successfully", {
+      requesterId: req.user.id,
+      totalCount,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Total attendance count retrieved successfully",
+      data: { totalCount },
+    });
+  } catch (error) {
+    logger.error("Error in getTotalAttendanceCount", { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Get daily attendance statistics for the last N days
+const getDailyStats = async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 7;
+    const maxDays = Math.min(days, 30); // Limit to 30 days max
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - maxDays + 1);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get all attendance records for the period
+    const attendanceRecords = await Attendance.find({
+      entryTime: { $gte: startDate },
+    }).select("employee entryTime");
+
+    // Group by date
+    const dailyStats = [];
+    for (let i = 0; i < maxDays; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      // Count unique employees for this day
+      const dayRecords = attendanceRecords.filter((record) => {
+        const recordDate = new Date(record.entryTime);
+        return recordDate >= date && recordDate < nextDate;
+      });
+
+      // Get unique employee IDs
+      const uniqueEmployees = new Set(
+        dayRecords.map((record) => record.employee.toString())
+      );
+
+      dailyStats.push({
+        date: date.toISOString().split("T")[0],
+        count: uniqueEmployees.size,
+      });
+    }
+
+    logger.info("Daily attendance statistics retrieved successfully", {
+      requesterId: req.user.id,
+      days: maxDays,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Daily statistics retrieved successfully",
+      data: { stats: dailyStats },
+    });
+  } catch (error) {
+    logger.error("Error in getDailyStats", { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   recordAttendance,
   getAttendance,
@@ -965,4 +1050,6 @@ module.exports = {
   getPresenceReport,
   getAllPresenceReports,
   getAllEmployees,
+  getDailyStats,
+  getTotalAttendanceCount,
 };
