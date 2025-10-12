@@ -25,6 +25,16 @@ const attendanceSchema = new mongoose.Schema(
         required: true,
       },
     },
+    exitLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+      },
+    },
     method: {
       type: String,
       enum: ["qr", "facial", "manual"],

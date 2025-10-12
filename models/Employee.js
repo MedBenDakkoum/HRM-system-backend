@@ -42,10 +42,6 @@ const employeeSchema = new mongoose.Schema(
       type: [Number], // Array for face-api.js descriptor (128 numbers)
       default: undefined,
     },
-    qrCode: {
-      type: String,
-      trim: true,
-    },
   },
   { timestamps: true }
 );

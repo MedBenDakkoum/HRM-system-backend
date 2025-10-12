@@ -33,7 +33,50 @@ const validateRecordAttendance = [
   body("entryTime")
     .isISO8601()
     .toDate()
-    .withMessage("Valid entryTime is required"),
+    .withMessage("Valid entryTime is required")
+    .custom((value, { req }) => {
+      const now = new Date();
+      const entryDate = new Date(value);
+
+      // Check if entry time is in the future (more than 15 minutes ahead)
+      const timeDiff = entryDate.getTime() - now.getTime();
+      if (timeDiff > 15 * 60 * 1000) {
+        // 15 minutes in milliseconds
+        throw new Error(
+          "Entry time cannot be more than 15 minutes in the future"
+        );
+      }
+
+      // For non-admins: cannot record past dates (only today with 15 min tolerance)
+      if (req.user?.role !== "admin") {
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const entryDateStart = new Date(
+          entryDate.getFullYear(),
+          entryDate.getMonth(),
+          entryDate.getDate()
+        );
+
+        if (entryDateStart < todayStart) {
+          throw new Error("Only admins can record attendance for past dates");
+        }
+
+        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
+        if (timeDiff < -15 * 60 * 1000) {
+          throw new Error("Only admins can record attendance for past times");
+        }
+      }
+
+      // For admins: check if entry time is more than 7 days in the past (very lenient)
+      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
+        throw new Error("Entry time cannot be more than 7 days in the past");
+      }
+
+      return true;
+    }),
   body("location.coordinates")
     .isArray({ min: 2, max: 2 })
     .withMessage("Location coordinates must be [longitude, latitude]"),
@@ -45,12 +88,110 @@ const validateRecordAttendance = [
     .withMessage("Method must be one of: manual, qr, facial"),
 ];
 
+const validateExitAttendance = [
+  body("employeeId").isMongoId().withMessage("Valid employeeId is required"),
+  body("exitTime")
+    .isISO8601()
+    .toDate()
+    .withMessage("Valid exitTime is required")
+    .custom((value, { req }) => {
+      const now = new Date();
+      const exitDate = new Date(value);
+
+      // Check if exit time is in the future (more than 15 minutes ahead)
+      const timeDiff = exitDate.getTime() - now.getTime();
+      if (timeDiff > 15 * 60 * 1000) {
+        // 15 minutes in milliseconds
+        throw new Error("Exit time cannot be in the future");
+      }
+
+      // For non-admins: cannot record past dates (only today with 15 min tolerance)
+      if (req.user?.role !== "admin") {
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const exitDateStart = new Date(
+          exitDate.getFullYear(),
+          exitDate.getMonth(),
+          exitDate.getDate()
+        );
+
+        if (exitDateStart < todayStart) {
+          throw new Error("Only admins can record exit time for past dates");
+        }
+
+        // If recording past exit time today (more than 15 minutes ago), not allowed for non-admins
+        if (timeDiff < -15 * 60 * 1000) {
+          throw new Error("Only admins can record exit time for past times");
+        }
+      }
+
+      // For admins: check if exit time is more than 7 days in the past
+      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
+        throw new Error("Exit time cannot be more than 7 days in the past");
+      }
+
+      return true;
+    }),
+  body("location.coordinates")
+    .isArray({ min: 2, max: 2 })
+    .withMessage("Location coordinates must be [longitude, latitude]"),
+  body("location.coordinates.*")
+    .isFloat()
+    .withMessage("Coordinates must be numbers"),
+];
+
 const validateScanQr = [
   body("qrData").notEmpty().withMessage("QR data is required"),
   body("entryTime")
     .isISO8601()
     .toDate()
-    .withMessage("Valid entryTime is required"),
+    .withMessage("Valid entryTime is required")
+    .custom((value, { req }) => {
+      const now = new Date();
+      const entryDate = new Date(value);
+
+      // Check if entry time is in the future (more than 15 minutes ahead)
+      const timeDiff = entryDate.getTime() - now.getTime();
+      if (timeDiff > 15 * 60 * 1000) {
+        // 15 minutes in milliseconds
+        throw new Error(
+          "Entry time cannot be more than 15 minutes in the future"
+        );
+      }
+
+      // For non-admins: cannot record past dates (only today with 15 min tolerance)
+      if (req.user?.role !== "admin") {
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const entryDateStart = new Date(
+          entryDate.getFullYear(),
+          entryDate.getMonth(),
+          entryDate.getDate()
+        );
+
+        if (entryDateStart < todayStart) {
+          throw new Error("Only admins can record attendance for past dates");
+        }
+
+        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
+        if (timeDiff < -15 * 60 * 1000) {
+          throw new Error("Only admins can record attendance for past times");
+        }
+      }
+
+      // For admins: check if entry time is more than 7 days in the past (very lenient)
+      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
+        throw new Error("Entry time cannot be more than 7 days in the past");
+      }
+
+      return true;
+    }),
   body("location.coordinates")
     .isArray({ min: 2, max: 2 })
     .withMessage("Location coordinates must be [longitude, latitude]"),
@@ -70,7 +211,50 @@ const validateFacialAttendance = [
   body("entryTime")
     .isISO8601()
     .toDate()
-    .withMessage("Valid entryTime is required"),
+    .withMessage("Valid entryTime is required")
+    .custom((value, { req }) => {
+      const now = new Date();
+      const entryDate = new Date(value);
+
+      // Check if entry time is in the future (more than 15 minutes ahead)
+      const timeDiff = entryDate.getTime() - now.getTime();
+      if (timeDiff > 15 * 60 * 1000) {
+        // 15 minutes in milliseconds
+        throw new Error(
+          "Entry time cannot be more than 15 minutes in the future"
+        );
+      }
+
+      // For non-admins: cannot record past dates (only today with 15 min tolerance)
+      if (req.user?.role !== "admin") {
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const entryDateStart = new Date(
+          entryDate.getFullYear(),
+          entryDate.getMonth(),
+          entryDate.getDate()
+        );
+
+        if (entryDateStart < todayStart) {
+          throw new Error("Only admins can record attendance for past dates");
+        }
+
+        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
+        if (timeDiff < -15 * 60 * 1000) {
+          throw new Error("Only admins can record attendance for past times");
+        }
+      }
+
+      // For admins: check if entry time is more than 7 days in the past (very lenient)
+      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
+        throw new Error("Entry time cannot be more than 7 days in the past");
+      }
+
+      return true;
+    }),
   body("location.coordinates")
     .isArray({ min: 2, max: 2 })
     .withMessage("Location coordinates must be [longitude, latitude]"),
@@ -79,21 +263,7 @@ const validateFacialAttendance = [
     .withMessage("Coordinates must be numbers"),
 ];
 
-const validateExitTime = [
-  body("attendanceId")
-    .isMongoId()
-    .withMessage("Valid attendanceId is required"),
-  body("exitTime")
-    .isISO8601()
-    .toDate()
-    .withMessage("Valid exitTime is required"),
-  body("location.coordinates")
-    .isArray({ min: 2, max: 2 })
-    .withMessage("Location coordinates must be [longitude, latitude]"),
-  body("location.coordinates.*")
-    .isFloat()
-    .withMessage("Coordinates must be numbers"),
-];
+// REMOVED validateExitTime - Using validateExitAttendance instead
 
 const validateReport = [
   param("employeeId").isMongoId().withMessage("Valid employeeId is required"),
@@ -262,7 +432,10 @@ const getAttendance = [
 
       const attendanceRecords = await Attendance.find({
         employee: employeeId,
-      }).populate("employee", "name email");
+      })
+        .populate("employee", "name email")
+        .sort({ createdAt: -1 }) // Sort by newest first
+        .limit(7); // Limit to last 7 records
       logger.info("Employee attendance retrieved successfully", {
         employeeId,
         requesterId: req.user.id,
@@ -311,9 +484,24 @@ const generateQrCode = [
         });
       }
 
+      // Check if requester is authorized to generate QR code for this employee
+      if (req.user.id !== employeeId && req.user.role !== "admin") {
+        logger.warn("Unauthorized QR code generation attempt", {
+          employeeId,
+          requesterId: req.user.id,
+          requesterRole: req.user.role,
+        });
+        return res.status(403).json({
+          success: false,
+          message:
+            "Access denied: Can only generate QR code for yourself or requires admin role",
+        });
+      }
+
       const qrData = JSON.stringify({
         employeeId,
         timestamp: Date.now(),
+        expiresAt: Date.now() + 12 * 60 * 60 * 1000, // Expires in 12 hours
       });
       const qrCodeUrl = await QRCode.toDataURL(qrData);
       logger.info("QR code generated successfully", {
@@ -324,7 +512,7 @@ const generateQrCode = [
       res.status(200).json({
         success: true,
         message: "QR code generated successfully",
-        data: { qrCode: qrCodeUrl },
+        data: { qrCodeUrl: qrCodeUrl },
       });
     } catch (error) {
       logger.error("Error in generateQrCode", { error: error.message });
@@ -629,112 +817,7 @@ const facialAttendance = [
   },
 ];
 
-const recordExit = [
-  validateExitTime,
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        logger.warn("Validation errors in recordExit", {
-          errors: errors.array(),
-        });
-        return res.status(400).json({
-          success: false,
-          message: "Validation errors",
-          errors: errors.array(),
-        });
-      }
-
-      const { attendanceId, exitTime, location } = req.body;
-      const attendance = await Attendance.findById(attendanceId);
-      if (!attendance) {
-        logger.warn("Attendance not found in recordExit", { attendanceId });
-        return res.status(404).json({
-          success: false,
-          message: "Attendance record not found",
-        });
-      }
-
-      // Check authorization
-      if (
-        req.user.id !== attendance.employee.toString() &&
-        req.user.role !== "admin"
-      ) {
-        logger.warn("Unauthorized exit time recording", {
-          attendanceId,
-          employeeId: attendance.employee,
-          requesterId: req.user.id,
-          requesterRole: req.user.role,
-        });
-        return res.status(403).json({
-          success: false,
-          message:
-            "Access denied: Can only record own exit time or requires admin role",
-        });
-      }
-
-      const employee = await Employee.findById(attendance.employee);
-      if (!employee) {
-        logger.warn("Employee not found in recordExit", {
-          employeeId: attendance.employee,
-        });
-        return res.status(404).json({
-          success: false,
-          message: "Employee not found",
-        });
-      }
-
-      // Location validation
-      const distance =
-        Math.sqrt(
-          Math.pow(location.coordinates[0] - allowedLocation.lng, 2) +
-            Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
-        ) * 111000;
-      if (distance > allowedRadius) {
-        await sendEmailAndNotify(
-          employee.email,
-          "Unauthorized Location Attempt",
-          `Your exit attempt at ${new Date(
-            exitTime
-          ).toLocaleString()} was outside the allowed area.`,
-          { userId: attendance.employee.toString(), type: "location_issue" }
-        );
-        logger.warn("Location outside allowed area in recordExit", {
-          employeeId: attendance.employee,
-          distance,
-        });
-        return res.status(400).json({
-          success: false,
-          message: "Location outside allowed area",
-        });
-      }
-
-      attendance.exitTime = exitTime;
-      attendance.workingHours =
-        (new Date(exitTime) - new Date(attendance.entryTime)) /
-        (1000 * 60 * 60);
-      await attendance.save();
-      logger.info("Exit time recorded successfully", {
-        attendanceId,
-        employeeId: attendance.employee,
-        requesterId: req.user.id,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "Exit time recorded successfully",
-        data: { attendance, workingHours: attendance.workingHours.toFixed(2) },
-      });
-    } catch (error) {
-      logger.error("Error in recordExit", { error: error.message });
-      res.status(500).json({
-        success: false,
-        message: "Server error",
-        error: error.message,
-      });
-    }
-  },
-];
+// REMOVED DUPLICATE recordExit FUNCTION - Using the correct one below
 
 const getPresenceReport = [
   validateReport,
@@ -805,11 +888,15 @@ const getPresenceReport = [
           if (record.entryTime.getHours() >= 9) {
             report.lateDays += 1;
           }
+
+          // Calculate hours worked - ONLY count actual recorded hours
           if (record.exitTime) {
+            // Only count hours when both entry AND exit are recorded
             const hours =
               (record.exitTime - record.entryTime) / (1000 * 60 * 60);
             report.totalHours += hours;
           }
+          // If no exit time recorded, don't count any hours (we don't know actual work time)
         }
       });
 
@@ -838,30 +925,31 @@ const getAllPresenceReports = async (req, res) => {
   try {
     const { period, startDate, endDate } = req.query;
 
-    // Validate query parameters
-    if (!["daily", "weekly", "monthly"].includes(period) || !startDate) {
-      logger.warn("Invalid query parameters in getAllPresenceReports", {
-        period,
-        startDate,
-      });
-      return res.status(400).json({
-        success: false,
-        message: "Invalid period or startDate",
-      });
-    }
-
-    const employees = await Employee.find().select("name email role");
+    const employees = await Employee.find().select(
+      "name email role hireDate createdAt"
+    );
     const reports = [];
 
     for (const employee of employees) {
       const query = { employee: employee._id };
-      if (period === "weekly") {
+
+      // If no date parameters provided, use hire date to today as default
+      if (!period && !startDate && !endDate) {
+        const hireDate = employee.hireDate || employee.createdAt;
+        if (hireDate) {
+          const start = new Date(hireDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date();
+          end.setHours(23, 59, 59, 999);
+          query.entryTime = { $gte: start, $lte: end };
+        }
+      } else if (period === "weekly" && startDate) {
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(start);
         end.setDate(start.getDate() + 7);
         query.entryTime = { $gte: start, $lte: end };
-      } else if (period === "monthly") {
+      } else if (period === "monthly" && startDate) {
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         start.setDate(1);
@@ -876,10 +964,24 @@ const getAllPresenceReports = async (req, res) => {
       }
 
       const attendanceRecords = await Attendance.find(query);
+
+      // Determine the actual period and start date for the report
+      let reportPeriod = period || "all-time";
+      let reportStartDate = startDate;
+
+      if (!period && !startDate && !endDate) {
+        const hireDate = employee.hireDate || employee.createdAt;
+        reportStartDate = hireDate
+          ? new Date(hireDate).toISOString().split("T")[0]
+          : null;
+      }
+
       const report = {
         employeeId: employee._id,
         employeeName: employee.name,
         employeeRole: employee.role,
+        period: reportPeriod,
+        startDate: reportStartDate,
         totalDays: 0,
         totalHours: 0,
         lateDays: 0,
@@ -891,11 +993,15 @@ const getAllPresenceReports = async (req, res) => {
           if (record.entryTime.getHours() >= 9) {
             report.lateDays += 1;
           }
+
+          // Calculate hours worked - ONLY count actual recorded hours
           if (record.exitTime) {
+            // Only count hours when both entry AND exit are recorded
             const hours =
               (record.exitTime - record.entryTime) / (1000 * 60 * 60);
             report.totalHours += hours;
           }
+          // If no exit time recorded, don't count any hours (we don't know actual work time)
         }
       });
 
@@ -1040,6 +1146,153 @@ const getDailyStats = async (req, res) => {
   }
 };
 
+const recordExit = [
+  validateExitAttendance,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        logger.warn("Exit attendance validation failed", {
+          errors: errors.array(),
+          requesterId: req.user?.id,
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          errors: errors.array(),
+        });
+      }
+
+      const { employeeId, exitTime, location } = req.body;
+      const requesterId = req.user.id;
+
+      logger.info("Exit attendance request received", {
+        employeeId,
+        exitTime,
+        location,
+        requesterId,
+      });
+
+      // Check if employee exists
+      const employee = await Employee.findById(employeeId);
+      if (!employee) {
+        logger.warn("Employee not found for exit attendance", {
+          employeeId,
+          requesterId,
+        });
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found",
+        });
+      }
+
+      // Find the most recent attendance record for this employee that doesn't have an exit time
+      // For admin users, look for records within the last 7 days
+      // For regular users, only look for today's records
+      const now = new Date();
+      let startDate, endDate;
+
+      if (req.user?.role === "admin") {
+        // Admin: look for records within the last 7 days
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Regular user: only look for today's records
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      const existingAttendance = await Attendance.findOne({
+        employee: employeeId,
+        entryTime: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+        exitTime: { $exists: false },
+      }).sort({ entryTime: -1 });
+
+      if (!existingAttendance) {
+        logger.warn("No entry attendance found for exit", {
+          employeeId,
+          requesterId,
+        });
+        return res.status(400).json({
+          success: false,
+          message:
+            "No entry attendance found for today. Please record entry first.",
+        });
+      }
+
+      // Validate that exit time is after entry time
+      const exitDateTime = new Date(exitTime);
+      const entryDateTime = new Date(existingAttendance.entryTime);
+
+      if (exitDateTime <= entryDateTime) {
+        logger.warn("Exit time is not after entry time", {
+          employeeId,
+          entryTime: existingAttendance.entryTime,
+          exitTime,
+          requesterId,
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Exit time must be after entry time",
+        });
+      }
+
+      // Update the attendance record with exit time
+      existingAttendance.exitTime = exitDateTime;
+      existingAttendance.exitLocation = {
+        type: "Point",
+        coordinates: location.coordinates,
+      };
+
+      await existingAttendance.save();
+
+      logger.info("Exit attendance recorded successfully", {
+        attendanceId: existingAttendance._id,
+        employeeId,
+        entryTime: existingAttendance.entryTime,
+        exitTime: existingAttendance.exitTime,
+        requesterId,
+      });
+
+      // Send notification to employee
+      try {
+        await sendEmailAndNotify(
+          employee._id,
+          "Exit Recorded",
+          `Your exit time has been recorded: ${exitDateTime.toLocaleString()}`
+        );
+      } catch (emailError) {
+        logger.error("Failed to send exit notification", {
+          error: emailError.message,
+          employeeId,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Exit time recorded successfully",
+        data: {
+          attendance: existingAttendance,
+        },
+      });
+    } catch (error) {
+      logger.error("Error in recordExit", { error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  },
+];
+
 module.exports = {
   recordAttendance,
   getAttendance,
@@ -1052,4 +1305,5 @@ module.exports = {
   getAllEmployees,
   getDailyStats,
   getTotalAttendanceCount,
+  validateExitAttendance,
 };

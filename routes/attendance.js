@@ -11,6 +11,7 @@ const {
   getAllPresenceReports,
   getDailyStats,
   getTotalAttendanceCount,
+  validateExitAttendance,
 } = require("../controllers/attendanceController");
 const authMiddleware = require("../middleware/auth");
 const Notification = require("../models/Notification");
@@ -25,7 +26,11 @@ router.get(
   authMiddleware(["employee", "stagiaire", "admin"]),
   getAttendance
 );
-router.get("/qr/:employeeId", authMiddleware(["admin"]), generateQrCode);
+router.get(
+  "/qr/:employeeId",
+  authMiddleware(["employee", "stagiaire", "admin"]),
+  generateQrCode
+);
 router.post(
   "/scan-qr",
   authMiddleware(["employee", "stagiaire", "admin"]),
@@ -39,6 +44,7 @@ router.post(
 router.post(
   "/exit",
   authMiddleware(["employee", "stagiaire", "admin"]),
+  validateExitAttendance,
   recordExit
 );
 router.get("/report/:employeeId", authMiddleware(["admin"]), getPresenceReport);
