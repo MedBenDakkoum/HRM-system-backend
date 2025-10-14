@@ -216,16 +216,36 @@ const loginEmployee = [
         employeeId: employee._id,
       });
 
-      res.cookie("token", token, {
+      // Try different cookie configurations for mobile compatibility
+      const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 3600 * 1000,
-      });
+      };
+
+      if (process.env.NODE_ENV === "production") {
+        // For production, use mobile-friendly settings
+        cookieOptions.sameSite = "none";
+      } else {
+        cookieOptions.sameSite = "lax";
+      }
+
+      res.cookie("token", token, cookieOptions);
+
+      // Also set a backup cookie with different settings for mobile
+      if (process.env.NODE_ENV === "production") {
+        res.cookie("auth_token", token, {
+          httpOnly: false, // Allow JS access as fallback
+          secure: true,
+          sameSite: "strict",
+          maxAge: 3600 * 1000,
+        });
+      }
 
       res.status(200).json({
         success: true,
         message: "Login successful",
+        token: token, // Include token in response for mobile fallback
       });
     } catch (error) {
       logger.error("Error in loginEmployee", { error: error.message });

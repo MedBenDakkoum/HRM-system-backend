@@ -26,11 +26,28 @@ if (process.env.NODE_ENV !== "production") {
 const authMiddleware = (roles = []) => {
   return async (req, res, next) => {
     try {
-      // Check for token in cookie
-      const token = req.cookies.token;
-      logger.info("Received token:", { token: token ? "present" : "absent" }); // Debug log
+      // Check for token in cookie first, then Authorization header (mobile fallback)
+      let token = req.cookies.token;
+
       if (!token) {
-        logger.warn("No token provided in cookie", {
+        // Check Authorization header for mobile fallback
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+
+      logger.info("Received token:", {
+        token: token ? "present" : "absent",
+        source: req.cookies.token
+          ? "cookie"
+          : req.headers.authorization
+          ? "header"
+          : "none",
+      });
+
+      if (!token) {
+        logger.warn("No token provided", {
           url: req.originalUrl,
           method: req.method,
         });
