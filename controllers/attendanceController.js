@@ -185,21 +185,21 @@ const recordAttendance = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > allowedRadius) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Unauthorized Location Attempt",
-            `Your attendance attempt at ${new Date(
-              entryTime
-            ).toLocaleString()} was outside the allowed area.`,
-            { userId: employeeId, type: "location_issue" }
-          );
-        } catch (emailError) {
+        // Fire-and-forget email notification (non-blocking)
+        sendEmailAndNotify(
+          employee.email,
+          "Unauthorized Location Attempt",
+          `Your attendance attempt at ${new Date(
+            entryTime
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employeeId, type: "location_issue" }
+        ).catch((emailError) => {
           logger.error("Failed to send location notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
+
         logger.warn("Location outside allowed area in recordAttendance", {
           employeeId,
           distance,
@@ -210,22 +210,20 @@ const recordAttendance = [
         });
       }
 
-      // Late attendance notification
+      // Late attendance notification (fire-and-forget)
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Late Attendance Notification",
-            `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
-            { userId: employeeId, type: "late_arrival" }
-          );
-        } catch (emailError) {
+        sendEmailAndNotify(
+          employee.email,
+          "Late Attendance Notification",
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employeeId, type: "late_arrival" }
+        ).catch((emailError) => {
           logger.error("Failed to send late arrival notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
         logger.info("Late attendance recorded", { employeeId, entryTime });
       }
 
@@ -451,21 +449,21 @@ const scanQrCode = [
 
       // Validate QR code timestamp (5-minute expiry)
       if (Date.now() - timestamp > 5 * 60 * 1000) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Expired QR Code Attempt",
-            `Your QR code scan at ${new Date(
-              entryTime
-            ).toLocaleString()} was invalid or expired.`,
-            { userId: employeeId, type: "expired_qr" }
-          );
-        } catch (emailError) {
+        // Fire-and-forget email notification (non-blocking)
+        sendEmailAndNotify(
+          employee.email,
+          "Expired QR Code Attempt",
+          `Your QR code scan at ${new Date(
+            entryTime
+          ).toLocaleString()} was invalid or expired.`,
+          { userId: employeeId, type: "expired_qr" }
+        ).catch((emailError) => {
           logger.error("Failed to send expired QR notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
+
         logger.warn("QR code expired", { employeeId, timestamp });
         return res.status(401).json({
           success: false,
@@ -480,21 +478,21 @@ const scanQrCode = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distance > allowedRadius) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Unauthorized Location Attempt",
-            `Your QR scan at ${new Date(
-              entryTime
-            ).toLocaleString()} was outside the allowed area.`,
-            { userId: employeeId, type: "location_issue" }
-          );
-        } catch (emailError) {
+        // Fire-and-forget email notification (non-blocking)
+        sendEmailAndNotify(
+          employee.email,
+          "Unauthorized Location Attempt",
+          `Your QR scan at ${new Date(
+            entryTime
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employeeId, type: "location_issue" }
+        ).catch((emailError) => {
           logger.error("Failed to send QR location notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
+
         logger.warn("Location outside allowed area in scanQrCode", {
           employeeId,
           distance,
@@ -505,22 +503,20 @@ const scanQrCode = [
         });
       }
 
-      // Late attendance notification
+      // Late attendance notification (fire-and-forget)
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Late Attendance Notification",
-            `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
-            { userId: employeeId, type: "late_arrival" }
-          );
-        } catch (emailError) {
+        sendEmailAndNotify(
+          employee.email,
+          "Late Attendance Notification",
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employeeId, type: "late_arrival" }
+        ).catch((emailError) => {
           logger.error("Failed to send QR late arrival notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
         logger.info("Late QR attendance recorded", { employeeId, entryTime });
       }
 
@@ -635,21 +631,21 @@ const facialAttendance = [
             Math.pow(location.coordinates[1] - allowedLocation.lat, 2)
         ) * 111000;
       if (distanceCheck > allowedRadius) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Unauthorized Location Attempt",
-            `Your facial scan at ${new Date(
-              entryTime
-            ).toLocaleString()} was outside the allowed area.`,
-            { userId: employee._id.toString(), type: "location_issue" }
-          );
-        } catch (emailError) {
+        // Fire-and-forget email notification (non-blocking)
+        sendEmailAndNotify(
+          employee.email,
+          "Unauthorized Location Attempt",
+          `Your facial scan at ${new Date(
+            entryTime
+          ).toLocaleString()} was outside the allowed area.`,
+          { userId: employee._id.toString(), type: "location_issue" }
+        ).catch((emailError) => {
           logger.error("Failed to send facial location notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
+
         logger.warn("Location outside allowed area in facialAttendance", {
           employeeId,
           distance: distanceCheck,
@@ -660,22 +656,20 @@ const facialAttendance = [
         });
       }
 
-      // Late attendance notification
+      // Late attendance notification (fire-and-forget)
       const entryDate = new Date(entryTime);
       if (entryDate.getHours() >= 9) {
-        try {
-          await sendEmailAndNotify(
-            employee.email,
-            "Late Attendance Notification",
-            `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
-            { userId: employee._id.toString(), type: "late_arrival" }
-          );
-        } catch (emailError) {
+        sendEmailAndNotify(
+          employee.email,
+          "Late Attendance Notification",
+          `You recorded attendance at ${entryDate.toLocaleString()}, which is after 9 AM.`,
+          { userId: employee._id.toString(), type: "late_arrival" }
+        ).catch((emailError) => {
           logger.error("Failed to send facial late arrival notification", {
             error: emailError.message,
             employeeId,
           });
-        }
+        });
         logger.info("Late facial attendance recorded", {
           employeeId,
           entryTime,
@@ -1151,19 +1145,17 @@ const recordExit = [
         requesterId,
       });
 
-      // Send notification to employee
-      try {
-        await sendEmailAndNotify(
-          employee._id,
-          "Exit Recorded",
-          `Your exit time has been recorded: ${exitDateTime.toLocaleString()}`
-        );
-      } catch (emailError) {
+      // Send notification to employee (fire-and-forget)
+      sendEmailAndNotify(
+        employee._id,
+        "Exit Recorded",
+        `Your exit time has been recorded: ${exitDateTime.toLocaleString()}`
+      ).catch((emailError) => {
         logger.error("Failed to send exit notification", {
           error: emailError.message,
           employeeId,
         });
-      }
+      });
 
       res.status(200).json({
         success: true,

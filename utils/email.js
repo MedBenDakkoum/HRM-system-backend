@@ -7,6 +7,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Add timeout to prevent hanging
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000, // 10 seconds
+  socketTimeout: 10000, // 10 seconds
 });
 
 const Notification = require("../models/Notification");
@@ -20,7 +24,13 @@ const sendEmailAndNotify = async (to, subject, text, notificationData = {}) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    // Add timeout to sendMail operation
+    await Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Email timeout")), 15000)
+      ),
+    ]);
     console.log("Email sent successfully to:", to);
 
     // Create notification if data is provided
