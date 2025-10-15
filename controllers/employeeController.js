@@ -180,10 +180,20 @@ const loginEmployee = [
         logger.warn("Validation errors in loginEmployee", {
           errors: errors.array(),
         });
+
+        // Return user-friendly validation messages
+        const firstError = errors.array()[0];
+        let message = "Please check your input.";
+
+        if (firstError.path === "email") {
+          message = "Please enter a valid email address.";
+        } else if (firstError.path === "password") {
+          message = "Password is required.";
+        }
+
         return res.status(400).json({
           success: false,
-          message: "Validation errors",
-          errors: errors.array(),
+          message: message,
         });
       }
 

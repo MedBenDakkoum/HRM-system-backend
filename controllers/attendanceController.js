@@ -34,47 +34,9 @@ const validateRecordAttendance = [
     .isISO8601()
     .toDate()
     .withMessage("Valid entryTime is required")
-    .custom((value, { req }) => {
-      const now = new Date();
-      const entryDate = new Date(value);
-
-      // Check if entry time is in the future (more than 15 minutes ahead)
-      const timeDiff = entryDate.getTime() - now.getTime();
-      if (timeDiff > 15 * 60 * 1000) {
-        // 15 minutes in milliseconds
-        throw new Error(
-          "Entry time cannot be more than 15 minutes in the future"
-        );
-      }
-
-      // For non-admins: cannot record past dates (only today with 15 min tolerance)
-      if (req.user?.role !== "admin") {
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        const entryDateStart = new Date(
-          entryDate.getFullYear(),
-          entryDate.getMonth(),
-          entryDate.getDate()
-        );
-
-        if (entryDateStart < todayStart) {
-          throw new Error("Only admins can record attendance for past dates");
-        }
-
-        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
-        if (timeDiff < -15 * 60 * 1000) {
-          throw new Error("Only admins can record attendance for past times");
-        }
-      }
-
-      // For admins: check if entry time is more than 7 days in the past (very lenient)
-      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
-        throw new Error("Entry time cannot be more than 7 days in the past");
-      }
-
+    .custom((value) => {
+      // Demo-friendly: Allow any entry time for testing purposes
+      // No time restrictions - CEO can test at any time of day
       return true;
     }),
   body("location.coordinates")
@@ -94,45 +56,9 @@ const validateExitAttendance = [
     .isISO8601()
     .toDate()
     .withMessage("Valid exitTime is required")
-    .custom((value, { req }) => {
-      const now = new Date();
-      const exitDate = new Date(value);
-
-      // Check if exit time is in the future (more than 15 minutes ahead)
-      const timeDiff = exitDate.getTime() - now.getTime();
-      if (timeDiff > 15 * 60 * 1000) {
-        // 15 minutes in milliseconds
-        throw new Error("Exit time cannot be in the future");
-      }
-
-      // For non-admins: cannot record past dates (only today with 15 min tolerance)
-      if (req.user?.role !== "admin") {
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        const exitDateStart = new Date(
-          exitDate.getFullYear(),
-          exitDate.getMonth(),
-          exitDate.getDate()
-        );
-
-        if (exitDateStart < todayStart) {
-          throw new Error("Only admins can record exit time for past dates");
-        }
-
-        // If recording past exit time today (more than 15 minutes ago), not allowed for non-admins
-        if (timeDiff < -15 * 60 * 1000) {
-          throw new Error("Only admins can record exit time for past times");
-        }
-      }
-
-      // For admins: check if exit time is more than 7 days in the past
-      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
-        throw new Error("Exit time cannot be more than 7 days in the past");
-      }
-
+    .custom((value) => {
+      // Demo-friendly: Allow any exit time for testing purposes
+      // No time restrictions - CEO can test at any time of day
       return true;
     }),
   body("location.coordinates")
@@ -149,47 +75,9 @@ const validateScanQr = [
     .isISO8601()
     .toDate()
     .withMessage("Valid entryTime is required")
-    .custom((value, { req }) => {
-      const now = new Date();
-      const entryDate = new Date(value);
-
-      // Check if entry time is in the future (more than 15 minutes ahead)
-      const timeDiff = entryDate.getTime() - now.getTime();
-      if (timeDiff > 15 * 60 * 1000) {
-        // 15 minutes in milliseconds
-        throw new Error(
-          "Entry time cannot be more than 15 minutes in the future"
-        );
-      }
-
-      // For non-admins: cannot record past dates (only today with 15 min tolerance)
-      if (req.user?.role !== "admin") {
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        const entryDateStart = new Date(
-          entryDate.getFullYear(),
-          entryDate.getMonth(),
-          entryDate.getDate()
-        );
-
-        if (entryDateStart < todayStart) {
-          throw new Error("Only admins can record attendance for past dates");
-        }
-
-        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
-        if (timeDiff < -15 * 60 * 1000) {
-          throw new Error("Only admins can record attendance for past times");
-        }
-      }
-
-      // For admins: check if entry time is more than 7 days in the past (very lenient)
-      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
-        throw new Error("Entry time cannot be more than 7 days in the past");
-      }
-
+    .custom((value) => {
+      // Demo-friendly: Allow any entry time for testing purposes
+      // No time restrictions - CEO can test at any time of day
       return true;
     }),
   body("location.coordinates")
@@ -212,47 +100,9 @@ const validateFacialAttendance = [
     .isISO8601()
     .toDate()
     .withMessage("Valid entryTime is required")
-    .custom((value, { req }) => {
-      const now = new Date();
-      const entryDate = new Date(value);
-
-      // Check if entry time is in the future (more than 15 minutes ahead)
-      const timeDiff = entryDate.getTime() - now.getTime();
-      if (timeDiff > 15 * 60 * 1000) {
-        // 15 minutes in milliseconds
-        throw new Error(
-          "Entry time cannot be more than 15 minutes in the future"
-        );
-      }
-
-      // For non-admins: cannot record past dates (only today with 15 min tolerance)
-      if (req.user?.role !== "admin") {
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        const entryDateStart = new Date(
-          entryDate.getFullYear(),
-          entryDate.getMonth(),
-          entryDate.getDate()
-        );
-
-        if (entryDateStart < todayStart) {
-          throw new Error("Only admins can record attendance for past dates");
-        }
-
-        // If recording past time today (more than 15 minutes ago), not allowed for non-admins
-        if (timeDiff < -15 * 60 * 1000) {
-          throw new Error("Only admins can record attendance for past times");
-        }
-      }
-
-      // For admins: check if entry time is more than 7 days in the past (very lenient)
-      if (req.user?.role === "admin" && timeDiff < -7 * 24 * 60 * 60 * 1000) {
-        throw new Error("Entry time cannot be more than 7 days in the past");
-      }
-
+    .custom((value) => {
+      // Demo-friendly: Allow any entry time for testing purposes
+      // No time restrictions - CEO can test at any time of day
       return true;
     }),
   body("location.coordinates")
@@ -1186,25 +1036,16 @@ const recordExit = [
         });
       }
 
-      // Find the most recent attendance record for this employee that doesn't have an exit time
-      // For admin users, look for records within the last 7 days
-      // For regular users, only look for today's records
+      // Demo-friendly: Find the most recent attendance record without exit time
+      // Allow searching across multiple days for testing flexibility
       const now = new Date();
       let startDate, endDate;
 
-      if (req.user?.role === "admin") {
-        // Admin: look for records within the last 7 days
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(now);
-        endDate.setHours(23, 59, 59, 999);
-      } else {
-        // Regular user: only look for today's records
-        startDate = new Date(now);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(now);
-        endDate.setHours(23, 59, 59, 999);
-      }
+      // For demo: Allow both admins and users to access records from last 30 days
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Future dates too
+      endDate.setHours(23, 59, 59, 999);
 
       const existingAttendance = await Attendance.findOne({
         employee: employeeId,
